@@ -1,0 +1,50 @@
+Backend: Vivado
+ClockPeriod: 5
+HLSConfig:
+  LayerName:
+    dense1:
+      Precision:
+        bias: fixed<4,1>
+        result: fixed<16,6>
+        weight: fixed<4,1>
+      Trace: false
+    dense1_linear:
+      Precision:
+        result: fixed<16,6>
+      Trace: false
+    dense2:
+      Precision:
+        bias: fixed<4,1>
+        result: fixed<16,6>
+        weight: fixed<4,1>
+      Trace: false
+    dense2_linear:
+      Precision:
+        result: fixed<16,6>
+      Trace: false
+    input1:
+      Precision:
+        result: fixed<16,6>
+      Trace: false
+    linear:
+      Precision:
+        result: fixed<16,6>
+      Trace: false
+    relu1:
+      Precision:
+        result: ufixed<8,0,RND,SAT>
+      Trace: false
+  Model:
+    BramFactor: 1000000000
+    Precision: fixed<16,6>
+    ReuseFactor: 1
+    Strategy: Latency
+    TraceOutput: false
+IOType: io_parallel
+InputData: null
+KerasModel: !keras_model 'newModelWeights/keras_model.h5'
+OutputDir: newModelWeights
+OutputPredictions: null
+Part: xcku115-flvb2104-2-i
+ProjectName: myproject
+Stamp: b5Ab4b0b

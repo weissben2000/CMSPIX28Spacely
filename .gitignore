@@ -9,6 +9,9 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# dnn stuff to ignore
+*.h
+
 # C extensions
 *.so
 

@@ -191,6 +191,7 @@ def BSDG7102A_QUERY():
             print(out.decode())
     os.close(d)
 
+
 def SDG7102A_INIT():
     d = os.open('/dev/usbtmc0', os.O_RDWR)
     input = [
@@ -225,7 +226,7 @@ def SDG7102A_INIT():
     "C1:BTWV FALL,5e-10S",
     "C1:BTWV DLY,-0S",
     "C1:BTWV?",
-    "C1:OUTP ON",
+    "C1:OUTN ON",
     #"C1:OUTP LOAD,50",
     "C1:OUTP LOAD,HZ",
     "C1:OUTP PLRT, INVT"
