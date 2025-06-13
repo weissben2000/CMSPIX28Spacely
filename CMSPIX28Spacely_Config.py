@@ -19,7 +19,7 @@ V_SEQUENCE = ["vdda",
 ]
 
 I_SEQUENCE = [
-            #   "Ileak", 
+        #       "Ileak", 
             #   "OUTsink",
             #   "ThresholdOut",
             #   "ThresholdDown",
@@ -72,16 +72,17 @@ I_CHAN = {
 
 V_LEVEL = {"vdda": 0.9,
            "vddd": 0.9,
-           "vth0": 0.04,
-           "vth1": 0.08,
-           "vth2": 0.16,
+           "vth0": 0.12,
+           "vth1": 0.12,
+           "vth2": 0.12,
            "VMC": 0.4,
            "SUPERPIX":0.9,
            "INJ_1": 2,
            "Source10uA": 0.6            #TUNE TO have 5uW/pixel
 }
+
 I_LEVEL = {
-        #    "Ileak": 0,
+        #    "Ileak": 0.01,  # 10uA
         #    "OUTsink": 0,
         #    "ThresholdOut": 0,
         #    "ThresholdDown": 0,
@@ -91,7 +92,15 @@ I_LEVEL = {
            }
 
 V_WARN_VOLTAGE = {"vdda": [0.82,0.99],
-           "vddd": [0.82,0.99]
+           "vddd": [0.82,0.99],
+           "vth0": [0,0.3],
+           "vth1": [0,0.3],
+           "vth2": [0,0.3],
+           "VMC": [0,0.4],
+           "SUPERPIX":[0,0.99],
+           "INJ_1": [1.8,2.2],
+           "Source10uA": [0,0.9]
+
       }
 
 V_PORT  = {"vdda": None,
@@ -129,5 +138,5 @@ I_VOLT_LIMIT = {
 FNAL_SETTINGS = {
     "storageDirectory" : "/mnt/local/CMSPIX28/Scurve/data",
     "chipVersion" : 1,
-    "chipID" : 14
+    "chipID" : 17
 }
