@@ -100,7 +100,6 @@ V_WARN_VOLTAGE = {"vdda": [0.82,0.99],
            "SUPERPIX":[0,0.99],
            "INJ_1": [1.8,2.2],
            "Source10uA": [0,0.9]
-
       }
 
 V_PORT  = {"vdda": None,
