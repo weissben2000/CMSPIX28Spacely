@@ -29,8 +29,32 @@ def DNN(
     scanLoadPhase ='26', 
     dnn_csv=None, 
     pixel_compout_csv=None, 
-    outDir = "./", 
+    dataDir = FNAL_SETTINGS["storageDirectory"],
+    dateTime = None,
     readYproj=True):
+
+    #set threshold to higher values
+    vth0 = 0.08
+    vth1 = 0.16
+    vth2 = 0.32
+    V_PORT["vth0"].set_voltage(vth0)
+    V_LEVEL["vth0"] = vth0
+    V_PORT["vth1"].set_voltage(vth1)
+    V_LEVEL["vth1"] = vth1
+    V_PORT["vth2"].set_voltage(vth2)
+    V_LEVEL["vth2"] = vth2
+
+    SDG7102A_SWEEP(HLEV=0.3) # Set the pulse generator to 0.3V
+    
+    testType = "DNN"
+
+    chipInfo = f"ChipVersion{FNAL_SETTINGS['chipVersion']}_ChipID{FNAL_SETTINGS['chipID']}_SuperPix{2 if V_LEVEL['SUPERPIX'] == 0.9 else 1}"
+    testInfo = (dateTime if dateTime else datetime.now().strftime("%Y.%m.%d_%H.%M.%S")) + f"_{testType}"
+    # output directory
+    outDir = os.path.join(dataDir, chipInfo, testInfo)
+    print(f"Saving results to {outDir}")
+    os.makedirs(outDir, exist_ok=True)
+    os.chmod(outDir, mode=0o777)
 
     # Set the firmware to the default state
     fw_status_clear()
