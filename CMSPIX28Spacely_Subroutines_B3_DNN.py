@@ -27,8 +27,10 @@ def DNN(
     bxclk_delay='12',
     configClkGate='0',
     scanLoadPhase ='26', 
-    dnn_csv=None, 
-    pixel_compout_csv=None, 
+    dnn_csv=os.path.join(os.getcwd(),"spacely-asic-config/CMSPIX28Spacely/csv/b5_w5_b2_w2_pixel_bin.csv"), 
+    pixel_compout_csv=os.path.join(os.getcwd(),"spacely-asic-config/CMSPIX28Spacely/csv/compouts.csv"), 
+    hidden_csv=os.path.join(os.getcwd(),"spacely-asic-config/CMSPIX28Spa\
+cely/csv/hidden_debug.csv"),
     outDir = "./", 
     readYproj=True):
 
@@ -69,7 +71,8 @@ def DNN(
         
         # increment counter of number of patterns
         iN += 1
-        hiddenBit="/asic/projects/C/CMS_PIX_28/benjamin/verilog/workarea/cms28_smartpix_verification/PnR_cms28_smartpix_verification_A/tb/dnn/csv/l6/hidden_debug.csv"
+        hiddenBit=hidden_csv if hidden_csv else "/asic/projects/C/CMS_PIX_28/benjamin/verilog/workarea/cms28_smartpix_verification/PnR_cms28_smartpix_verification_A/tb/dnn/csv/l6/hidden_debug.csv"
+
         # pick up pixel config for the given pattern
         pixelConfig = genPixelProgramList(pixelLists[iP], pixelValues[iP])
 
