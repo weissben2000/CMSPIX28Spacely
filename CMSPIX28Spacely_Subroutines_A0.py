@@ -172,7 +172,7 @@ def BK4600HLEV_SWEEP(HLEV=0.2):
             print(out.decode())
     os.close(d)
 
-def BSDG7102A_QUERY():
+def SDG7102A_QUERY():
     d = os.open('/dev/usbtmc0', os.O_RDWR)
     input = [
     "*IDN?",    
@@ -274,9 +274,49 @@ def SDG7102A_INIT():
 #             out=os.read(d,1024)  #Print out the response
 #             print(out.decode())
 #     os.close(d)
+def SDG7102A_SWEEP_FALL(TFALL=5e-10, max_retries=10, retry_delay=0.1):
+    start = time.time()
+    input_commands = [
+        f"C1:BSWV FALL,{TFALL}S",# Set low-level voltage
+    ]
+    
+    retries = 0
+    while retries < max_retries:
+        try:
+            # Attempt to open the device file in read/write binary mode using 'with'
+            with open('/dev/usbtmc0', 'r+b') as d:
+                # print("Device connected successfully.")
+                for cmd in input_commands:
+                    d.write(cmd.encode())  # Send command to device
+
+                    # Only wait and read response if command ends with "?"
+                    if cmd.endswith("?"):
+                        time.sleep(1)  # Give the device time to respond
+                        out = d.read(1024)  # Read the response
+                        print(out.decode())  # Print the decoded output
+
+                    # If the command is not a query, we just continue
+                    else:
+                        out = b''  # No output for non-query commands
+
+                break  # Exit the loop once the connection and commands are successful
+
+        except (OSError, FileNotFoundError) as e:
+            # Catch specific exceptions related to the device connection
+            print(f"Connection failed at voltage {HLEV}: {e}. Retrying ({retries + 1}/{max_retries})...")
+            retries += 1
+            if retries < max_retries:
+                time.sleep(retry_delay)  # Delay before retrying
+            else:
+                print("Max retries reached. Could not connect to the device.")
+                break
+    end = time.time()
+    print("Elapsed time =", round(end-start,8), "seconds")
+
 
 
 def SDG7102A_SWEEP(HLEV=0.2, max_retries=10, retry_delay=0.1):
+    start = time.time()
     input_commands = [
         f"C1:BSWV HLEV,{HLEV}V",  # Set high-level voltage
         # "C1:BSWV LLEV,0V",  # Set low-level voltage
@@ -312,7 +352,8 @@ def SDG7102A_SWEEP(HLEV=0.2, max_retries=10, retry_delay=0.1):
             else:
                 print("Max retries reached. Could not connect to the device.")
                 break
-
+    end = time.time()
+    print("Elapsed time =", round(end-start,8), "seconds")
 
 
  
