@@ -277,7 +277,7 @@ def SDG7102A_INIT():
 def SDG7102A_SWEEP_FALL(TFALL=5e-10, max_retries=10, retry_delay=0.1):
     start = time.time()
     input_commands = [
-        f"C1:BSWV FALL,{TFALL}S",# Set low-level voltage
+        f"C1:BSWV RISE,{TFALL}S",# Set low-level voltage FALL TIME is set with RISE TIME because the PG is inverted !!!!
     ]
     
     retries = 0
