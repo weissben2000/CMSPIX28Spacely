@@ -31,12 +31,14 @@ def DNN(
     pixel_compout_csv=None, 
     dataDir = FNAL_SETTINGS["storageDirectory"],
     dateTime = None,
-    readYproj=True):
+    vth0=0.08,
+    vth1=0.16,
+    vth2=0.32,
+    readYproj=True
+):
 
     #set threshold to higher values
-    vth0 = 0.08
-    vth1 = 0.16
-    vth2 = 0.32
+
     V_PORT["vth0"].set_voltage(vth0)
     V_LEVEL["vth0"] = vth0
     V_PORT["vth1"].set_voltage(vth1)
@@ -50,6 +52,7 @@ def DNN(
 
     chipInfo = f"ChipVersion{FNAL_SETTINGS['chipVersion']}_ChipID{FNAL_SETTINGS['chipID']}_SuperPix{2 if V_LEVEL['SUPERPIX'] == 0.9 else 1}"
     testInfo = (dateTime if dateTime else datetime.now().strftime("%Y.%m.%d_%H.%M.%S")) + f"_{testType}"
+    testInfo += f"_vth0-{V_LEVEL['vth0']:.3f}_vth1-{V_LEVEL['vth1']:.3f}_vth2-{V_LEVEL['vth2']:.3f}"
     # output directory
     outDir = os.path.join(dataDir, chipInfo, testInfo)
     print(f"Saving results to {outDir}")
@@ -75,6 +78,7 @@ def DNN(
         ["4'h1", "4'h3", "16'h0", "1'h1", "7'h64"] # OP_CODE_R_CFG_STATIC_0 : we read back
     ]
     sw_write32_0(hex_lists)
+
 
     # load all of the configs
     filename = pixel_compout_csv if pixel_compout_csv else "/asic/projects/C/CMS_PIX_28/benjamin/verilog/workarea/cms28_smartpix_verification/PnR_cms28_smartpix_verification_D/tb/dnn/csv/l6/compouts.csv"
@@ -127,6 +131,7 @@ def DNN(
         # # We ran ROUTINE_ProgShiftRegs with debug mode ON and found the breaking point of the delay value to get the correct data in DATA_ARRAY 0 and DATA_ARRAY_1
         # We went 10% above breaking point
         time.sleep(0.02)
+
 
         # verbose and debug mode
         if(verbose==True and progDebug==True):
@@ -237,6 +242,7 @@ def DNN(
             
 
         sw_write32_0(hex_lists)
+
         # sw_read32_0, sw_read32_1, sw_read32_0_pass, sw_read32_1_pass = sw_read32() #print_code = "ibh")
         
         # each write CFG_ARRAY_0 is writing 16 bits. 768/16 = 48 writes in total.
@@ -261,6 +267,7 @@ def DNN(
 
 
         sw_write32_0(hex_lists)
+
         # sw_read32_0, sw_read32_1, sw_read32_0_pass, sw_read32_1_pass = sw_read32() 
         
         # OP_CODE_R_DATA_ARRAY_0 24 times = address 0, 1, 2, ... until I read all 24 words (32 bits). 
