@@ -83,6 +83,7 @@ def PreProgSCurve(
 
     # number of 32bit word to read the scanChain
     nWord = 24
+    ipixel = (V_PORT["vdda"].get_current())*1000000/(512*10)    # extract roughtly Ibias for a pixel. NEED TO KNOW I_testStructure!!!
     
     # 400MHz is the FPGA clock
     bxclk_period_inMhz = 400/int(bxclk_period, 16) 
@@ -101,13 +102,16 @@ def PreProgSCurve(
         pixelInfo = f"nPix{nPix}"
     elif testType == "MatrixIbias":
         testInfo += f"_vMin{v_min:.3f}_vMax{v_max:.3f}_vStep{v_step:.5f}_nSample{nsample:.3f}_vdda{V_LEVEL['vdda']:.3f}_BXCLKf{bxclk_period_inMhz:.2f}_BxCLKDly{bxclk_delay_in_ns:.2f}_injDly{injection_delay_in_ns:.2f}_vth0-{V_LEVEL['vth0']:.3f}_vth1-{V_LEVEL['vth1']:.3f}_vth2-{V_LEVEL['vth2']:.3f}_nPix{nPix}"
-        pixelInfo = f"Ibias{V_LEVEL['Source10uA']:.3f}"
+        pixelInfo = f"Ibias{V_LEVEL['Ibias']:.3f}"
     elif testType == "MatrixVTH":
         testInfo += f"_vMin{v_min:.3f}_vMax{v_max:.3f}_vStep{v_step:.5f}_nSample{nsample:.3f}_vdda{V_LEVEL['vdda']:.3f}_BXCLKf{bxclk_period_inMhz:.2f}_BxCLKDly{bxclk_delay_in_ns:.2f}_injDly{injection_delay_in_ns:.2f}_Ibias{V_LEVEL['Ibias']:.3f}_nPix{nPix}"
         pixelInfo = f"vth{V_LEVEL['vth0']:.3f}"
     elif testType == "MatrixInjDly":
-        testInfo += f"_vMin{v_min:.3f}_vMax{v_max:.3f}_vStep{v_step:.5f}_nSample{nsample:.3f}_vdda{V_LEVEL['vdda']:.3f}_BXCLKf{bxclk_period_inMhz:.2f}_BxCLKDly{bxclk_delay_in_ns:.2f}_Ibias{V_LEVEL['Ibias']:.3f}__vth0-{V_LEVEL['vth0']:.3f}_vth1-{V_LEVEL['vth1']:.3f}_vth2-{V_LEVEL['vth2']:.3f}_nPix{nPix}"
-        pixelInfo = f"injDly{injection_delay}"    
+        testInfo += f"_vMin{v_min:.3f}_vMax{v_max:.3f}_vStep{v_step:.5f}_nSample{nsample:.3f}_vdda{V_LEVEL['vdda']:.3f}_BXCLKf{bxclk_period_inMhz:.2f}_BxCLKDly{bxclk_delay_in_ns:.2f}_Ibias{V_LEVEL['Ibias']:.3f}_vth0-{V_LEVEL['vth0']:.3f}_vth1-{V_LEVEL['vth1']:.3f}_vth2-{V_LEVEL['vth2']:.3f}_nPix{nPix}"
+        pixelInfo = f"injDly{injection_delay_in_ns:.2f}"    
+    elif testType == "MatrixBxCLKDly":
+        testInfo += f"_vMin{v_min:.3f}_vMax{v_max:.3f}_vStep{v_step:.5f}_nSample{nsample:.3f}_vdda{V_LEVEL['vdda']:.3f}_BXCLKf{bxclk_period_inMhz:.2f}_injDly{injection_delay_in_ns:.2f}_Ibias{V_LEVEL['Ibias']:.3f}_vth0-{V_LEVEL['vth0']:.3f}_vth1-{V_LEVEL['vth1']:.3f}_vth2-{V_LEVEL['vth2']:.3f}_nPix{nPix}"
+        pixelInfo = f"MatrixBxCLKDly{bxclk_delay_in_ns:.2f}"    
     elif testType == "MatrixPulseGenFall":
         testInfo += f"_vMin{v_min:.3f}_vMax{v_max:.3f}_vStep{v_step:.5f}_nSample{nsample:.3f}_vdda{V_LEVEL['vdda']:.3f}_BXCLKf{bxclk_period_inMhz:.2f}_BxCLKDly{bxclk_delay_in_ns:.2f}_injDly{injection_delay_in_ns:.2f}_Ibias{V_LEVEL['Ibias']:.3f}__vth0-{V_LEVEL['vth0']:.3f}_vth1-{V_LEVEL['vth1']:.3f}_vth2-{V_LEVEL['vth2']:.3f}_nPix{nPix}"
         pixelInfo = f"FallTime{parameter:.3e}"    
@@ -155,11 +159,14 @@ def PreProgSCurve(
             ] 
             sw_write32_0(hex_lists)
 
+            if nPix == None:
+                wordList = list(range(24))
             # prepare the word list to read
-            if(int(((nPix-1)*3+1)/32)==int(((nPix-1)*3+3)/32)):
-                wordList = [int(((nPix-1)*3+1)/32)]
             else:
-                wordList = [int(((nPix-1)*3+1)/32),int(((nPix-1)*3+3)/32)]
+                if(int(((nPix-1)*3+1)/32)==int(((nPix-1)*3+3)/32)):
+                    wordList = [int(((nPix-1)*3+1)/32)]
+                else:
+                    wordList = [int(((nPix-1)*3+1)/32),int(((nPix-1)*3+3)/32)]
 
             # allocate array for the words
             words = ["0"*32] * nWord
@@ -244,7 +251,7 @@ def PreProgSCurveBurst(
     # Note we do not yet have a smoke test. verify this on scope as desired.
     nPixHex = int_to_32bit_hex(nPix)
     nsampleHex = int_to_32bit_hex(nsample)
-    print(nsampleHex, nsample)
+    print(testType)
 
     if nsample>1365:
         print("You asked for more samples per iteration that the firmware can achieve. Max allowed is nsample = 1365. Please increase nIter instead and rerun.")
@@ -303,17 +310,19 @@ def PreProgSCurveBurst(
         pixelInfo = f"nPix{nPix}"
     elif testType == "MatrixIbias":
         testInfo += f"_vMin{v_min:.3f}_vMax{v_max:.3f}_vStep{v_step:.5f}_nSample{nsample:.3f}_vdda{V_LEVEL['vdda']:.3f}_BXCLKf{bxclk_period_inMhz:.2f}_BxCLKDly{bxclk_delay_in_ns:.2f}_injDly{injection_delay_in_ns:.2f}_vth0-{V_LEVEL['vth0']:.3f}_vth1-{V_LEVEL['vth1']:.3f}_vth2-{V_LEVEL['vth2']:.3f}_nPix{nPix}"
-        pixelInfo = f"Ibias{V_LEVEL['Source10uA']:.3f}"
+        pixelInfo = f"Ibias{V_LEVEL['Ibias']:.3f}"
     elif testType == "MatrixVTH":
         testInfo += f"_vMin{v_min:.3f}_vMax{v_max:.3f}_vStep{v_step:.5f}_nSample{nsample:.3f}_vdda{V_LEVEL['vdda']:.3f}_BXCLKf{bxclk_period_inMhz:.2f}_BxCLKDly{bxclk_delay_in_ns:.2f}_injDly{injection_delay_in_ns:.2f}_Ibias{V_LEVEL['Ibias']:.3f}_nPix{nPix}"
         pixelInfo = f"vth{V_LEVEL['vth0']:.3f}"
     elif testType == "MatrixInjDly":
-        testInfo += f"_vMin{v_min:.3f}_vMax{v_max:.3f}_vStep{v_step:.5f}_nSample{nsample:.3f}_vdda{V_LEVEL['vdda']:.3f}_BXCLKf{bxclk_period_inMhz:.2f}_BxCLKDly{bxclk_delay_in_ns:.2f}_Ibias{V_LEVEL['Ibias']:.3f}__vth0-{V_LEVEL['vth0']:.3f}_vth1-{V_LEVEL['vth1']:.3f}_vth2-{V_LEVEL['vth2']:.3f}_nPix{nPix}"
-        pixelInfo = f"injDly{injection_delay}"    
+        testInfo += f"_vMin{v_min:.3f}_vMax{v_max:.3f}_vStep{v_step:.5f}_nSample{nsample:.3f}_vdda{V_LEVEL['vdda']:.3f}_BXCLKf{bxclk_period_inMhz:.2f}_BxCLKDly{bxclk_delay_in_ns:.2f}_Ibias{V_LEVEL['Ibias']:.3f}_vth0-{V_LEVEL['vth0']:.3f}_vth1-{V_LEVEL['vth1']:.3f}_vth2-{V_LEVEL['vth2']:.3f}_nPix{nPix}"
+        pixelInfo = f"injDly{injection_delay_in_ns:.2f}"  
+    elif testType == "MatrixBxCLKDly":
+        testInfo += f"_vMin{v_min:.3f}_vMax{v_max:.3f}_vStep{v_step:.5f}_nSample{nsample:.3f}_vdda{V_LEVEL['vdda']:.3f}_BXCLKf{bxclk_period_inMhz:.2f}_injDly{injection_delay_in_ns:.2f}_Ibias{V_LEVEL['Ibias']:.3f}_vth0-{V_LEVEL['vth0']:.3f}_vth1-{V_LEVEL['vth1']:.3f}_vth2-{V_LEVEL['vth2']:.3f}_nPix{nPix}"
+        pixelInfo = f"MatrixBxCLKDly{bxclk_delay_in_ns:.2f}"     
     elif testType == "MatrixPulseGenFall":
         testInfo += f"_vMin{v_min:.3f}_vMax{v_max:.3f}_vStep{v_step:.5f}_nSample{nsample:.3f}_vdda{V_LEVEL['vdda']:.3f}_BXCLKf{bxclk_period_inMhz:.2f}_BxCLKDly{bxclk_delay_in_ns:.2f}_injDly{injection_delay_in_ns:.2f}_Ibias{V_LEVEL['Ibias']:.3f}__vth0-{V_LEVEL['vth0']:.3f}_vth1-{V_LEVEL['vth1']:.3f}_vth2-{V_LEVEL['vth2']:.3f}_nPix{nPix}"
-        pixelInfo = f"FallTime{parameter:.3e}"    
-        
+        pixelInfo = f"FallTime{parameter:.3e}"         
     elif testType == "Single":
         testInfo += f"_vMin{v_min:.3f}_vMax{v_max:.3f}_vStep{v_step:.5f}_nSample{nsample:.3f}_vdda{V_LEVEL['vdda']:.3f}_BXCLKf{bxclk_period_inMhz:.2f}_BxCLKDly{bxclk_delay_in_ns:.2f}_injDly{injection_delay_in_ns:.2f}_vth0-{V_LEVEL['vth0']:.3f}_vth1-{V_LEVEL['vth1']:.3f}_vth2-{V_LEVEL['vth2']:.3f}_pixPower{ipixel*0.9:.3f}_nPix{nPix}"
         pixelInfo = ""
@@ -482,8 +491,8 @@ def SCurveSweepIbias(nPix=0):
     # biasList = [0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8]
     # vthList = [1.5,1.6]
     for i in biasList:
-        V_PORT["Source10uA"].set_voltage(i)
-        V_LEVEL["Source10uA"] = i
+        V_PORT["Ibias"].set_voltage(i)
+        V_LEVEL["Ibias"] = i
         V_PORT["vdda"].get_current()
         PreProgSCurveBurst(
             scan_load_delay = '13', 
@@ -557,12 +566,13 @@ def SCurveSweepVTH(nPix=0):
         )
 
 def SCurveSweepVTHPix():
-    nPix = 10
-    for i in range(2,2+nPix,1):
+    nPix = 256
+    nPixList =  [192]
+    for i in nPixList: #range(nPix):
         SCurveSweepVTH(nPix=i)
 
 
-def SCurveSweep(nPix=0, bias = None, minBias = 0, maxBias = 1, stepBias =0.1, FWparameter = None, minPar = 0, maxPar = 28, stepPar = 1, PGparameter=None, minPG=5e-10, maxPG=10e-9, stepPG = 5e-10): 
+def SCurveSweep(nPix=0,  FWparameter = None, minPar = 0, maxPar = 28, stepPar = 1, PGparameter=None, minPG=5e-10, maxPG=10e-9, stepPG = 5e-10): 
 
 # This function programs a single pixel and extrac Scurve while sweeping a bias voltage
 # the voltage being sweep is VTH but could be changed to VDDA or VDDD
@@ -577,71 +587,6 @@ def SCurveSweep(nPix=0, bias = None, minBias = 0, maxBias = 1, stepBias =0.1, FW
     dataDir = FNAL_SETTINGS["storageDirectory"]
     now = datetime.now().strftime("%Y.%m.%d_%H.%M.%S")
 
-    if bias and bias != "VTH":
-        # Bias is expected to be set to the name defined in the config file except for VTH
-        # Sweep range
-        biasList = np.arange(minBias,maxBias,stepBias)
-
-        for i in biasList:
-            V_PORT[bias].set_voltage(i)
-            V_LEVEL[bias] = i
-            V_PORT["vdda"].get_current()
-            PreProgSCurveBurst(
-                scan_load_delay = '13', 
-                startBxclkState = '0', 
-                bxclk_delay = '12', #'0B', 
-                bxclk_period = '28', 
-                injection_delay = '1E', #'1D', 
-                scanLoopBackBit = '0', 
-                test_sample = '0F', 
-                scanLoadPhase ='26',
-                test_delay = '14', 
-                v_min = 0.001, 
-                v_max = 0.4, 
-                v_step = 0.001, 
-                nsample = 1365, 
-                nPix = nPix,
-                nIter=1,
-                dataDir = dataDir,
-                dateTime = now,
-                testType = "MatrixBias=" + bias
-            )
-    if bias and bias == "VTH":
-        # If bias is set to "VTH" vth0, vth1 and vth2 are updated
-        # Sweep range
-        biasList = np.arange(minBias,maxBias,stepBias)
-
-        for i in biasList:
-            V_PORT["vth0"].set_voltage(i)
-            V_LEVEL["vth0"] = i
-            V_PORT["vth1"].set_voltage(i)
-            V_LEVEL["vth1"] = i
-            V_PORT["vth2"].set_voltage(i)
-            V_LEVEL["vth2"] = i
-            V_PORT["vdda"].get_current()
-            PreProgSCurveBurst(
-                scan_load_delay = '13', 
-                startBxclkState = '0', 
-                bxclk_delay = '12', #'0B', 
-                bxclk_period = '28', 
-                injection_delay = '1E', #'1D', 
-                scanLoopBackBit = '0', 
-                test_sample = '0F', 
-                scanLoadPhase ='26',
-                test_delay = '14', 
-                v_min = 0.001, 
-                v_max = 0.4, 
-                v_step = 0.001, 
-                nsample = 1365, 
-                nPix = nPix,
-                nIter=1,
-                dataDir = dataDir,
-                dateTime = now,
-                testType = "Matrix"+bias,
-                parameter = i 
-            )
-
-
     if FWparameter:
 
         parmList = [f'{i:X}' for i in range(minPar, maxPar, stepPar)]
@@ -652,7 +597,7 @@ def SCurveSweep(nPix=0, bias = None, minBias = 0, maxBias = 1, stepBias =0.1, FW
             PreProgSCurveBurst(
                 scan_load_delay = '13', 
                 startBxclkState = '0', 
-                bxclk_delay = '12', #'0B', 
+                bxclk_delay = '12', #'12', 
                 bxclk_period = '28', 
                 injection_delay = i, 
                 scanLoopBackBit = '0', 
@@ -667,7 +612,7 @@ def SCurveSweep(nPix=0, bias = None, minBias = 0, maxBias = 1, stepBias =0.1, FW
                 nIter=1,
                 dataDir = dataDir,
                 dateTime = now,
-                testType = "MatrixInjDly",
+                testType = "MatrixInjDly", #"MatrixBxCKJDly", #
                 parameter = i 
             )
     
