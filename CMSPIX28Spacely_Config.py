@@ -15,7 +15,7 @@ V_SEQUENCE = ["vdda",
               "VMC", 
               "SUPERPIX", 
               "INJ_1",
-              "Source10uA"
+              "Ibias"
 ]
 
 I_SEQUENCE = [
@@ -36,7 +36,7 @@ V_INSTR = {"vdda": "car",
            "VMC":"car",
            "SUPERPIX":"car",
            "INJ_1": "car",
-           "Source10uA": "car"
+           "Ibias": "car"
 }
 
 I_INSTR = {
@@ -57,7 +57,7 @@ V_CHAN = {"vdda": "PWR_OUT_1",
            "VMC":"BIAS_1",
            "SUPERPIX":"BIAS_5",
            "INJ_1":"INJ_1",
-           "Source10uA":"BIAS_26"
+           "Ibias":"BIAS_26"
 }
 
 I_CHAN = {
@@ -72,13 +72,13 @@ I_CHAN = {
 
 V_LEVEL = {"vdda": 0.9,
            "vddd": 0.9,
-           "vth0": 0.031,
-           "vth1": 0.031,
-           "vth2": 0.031,
+           "vth0": 0.031, #0.05 is 1000e-
+           "vth1": 0.031, #0.08 is 1500e-
+           "vth2": 0.031, #0.11 is 2000e-
            "VMC": 0.4,
-           "SUPERPIX":0.9,
+           "SUPERPIX":0,
            "INJ_1": 2,
-           "Source10uA": 0.6            #TUNE TO have 5uW/pixel
+           "Ibias": 0.6            #TUNE TO have 5uW/pixel
 }
 
 I_LEVEL = {
@@ -99,7 +99,7 @@ V_WARN_VOLTAGE = {"vdda": [0.82,0.99],
            "VMC": [0,0.4],
            "SUPERPIX":[0,0.99],
            "INJ_1": [1.8,2.2],
-           "Source10uA": [0,0.9]
+           "Ibias": [0,0.9]
       }
 
 V_PORT  = {"vdda": None,
@@ -110,7 +110,7 @@ V_PORT  = {"vdda": None,
            "VMC":None,
            "SUPERPIX":None,
            "INJ_1": None,
-           "Source10uA": None
+           "Ibias": None
 }
 
 I_PORT = {
