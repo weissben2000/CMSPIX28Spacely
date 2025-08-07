@@ -89,9 +89,9 @@ def ROUTINE_DNN(
         injection_delay='1E', bxclk_period='28', startBxclkState='0',scan_load_delay='13', 
         cfg_test_delay='5', cfg_test_sample='20', progResetMask='0', configclk_period='64', 
         test_delay='14', test_sample='0F', bxclk_delay='12',configClkGate='0',scanLoadPhase ='26',
-        vth0 = 0.08, vth1=0.16, vth2=0.32, readYproj=True
+        vth0 = 0.08, vth1=0.16, vth2=0.32, readYproj=True, pixel_compout_csv=None
 ):
-        return DNN(progDebug,loopbackBit, patternIndexes, verbose, injection_delay, bxclk_period, startBxclkState, scan_load_delay, cfg_test_delay, cfg_test_sample, progResetMask, configclk_period, test_delay, test_sample, bxclk_delay,configClkGate, scanLoadPhase, vth0=vth0, vth1=vth1, vth2=vth2, readYproj=readYproj)
+        return DNN(progDebug,loopbackBit, patternIndexes, verbose, injection_delay, bxclk_period, startBxclkState, scan_load_delay, cfg_test_delay, cfg_test_sample, progResetMask, configclk_period, test_delay, test_sample, bxclk_delay,configClkGate, scanLoadPhase, vth0=vth0, vth1=vth1, vth2=vth2, readYproj=readYproj, pixel_compout_csv=pixel_compout_csv)
 
 #<<Registered w/ Spacely as ROUTINE 7, call as ~r7>>
 def ROUTINE_SettingsScan(
