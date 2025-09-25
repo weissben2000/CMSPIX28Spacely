@@ -135,7 +135,7 @@ I_VOLT_LIMIT = {
 
 
 FNAL_SETTINGS = {
-    "storageDirectory" : "/mnt/local/CMSPIX28/Scurve/data",
+    "storageDirectory" : "/mnt/local/CMSPIX28/data",#"/mnt/local/CMSPIX28/Scurve/data",
     "chipVersion" : 1,
     "chipID" : 17
 }
