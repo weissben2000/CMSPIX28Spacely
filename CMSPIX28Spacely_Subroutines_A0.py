@@ -242,6 +242,57 @@ def SDG7102A_INIT():
             print(out.decode())
     os.close(d)
 
+
+def SDG7102A_INJ_BURST():
+    d = os.open('/dev/usbtmc0', os.O_RDWR)
+    input = [
+    "*IDN?",
+    "C1:BSWV WVTP,PULSE",
+    "C1:BSWV PERI,8e-6S",
+    "C1:BSWV WIDTH, 1.6e-6S",
+    "C1:BTWV STATE,ON",
+    "C1:OUTN ON",
+    "C1:OUTP LOAD,HZ",
+    "C1:OUTP PLRT, INVT"
+    ]
+    nlist=len(input)
+    for i in range(nlist): 
+        os.write(d,input[i].encode())
+        out = b' '
+        # let's wait one second before reading output (let's give device time to answer)
+        print(input[i])
+        if(input[i][-1]=="?"):   #If the last character of the request is a question 
+            out=os.read(d,1024)  #Print out the response
+            print(out.decode())
+    os.close(d)
+
+def SDG7102A_INJ_CONT():
+    d = os.open('/dev/usbtmc0', os.O_RDWR)
+    input = [
+    "*IDN?",
+    "C1:BSWV WVTP,PULSE",
+    "C1:BSWV FRQ,666666HZ",
+    "C1:BSWV WIDTH, 0.75e-6S",
+    # "C1:BSWV PERI,1.5e-6S",
+
+    "C1:BTWV STATE,OFF",
+   
+    "C1:OUTN ON",
+    #"C1:OUTP LOAD,50",
+    "C1:OUTP LOAD,HZ",
+    "C1:OUTP PLRT, INVT"
+    ]
+    nlist=len(input)
+    for i in range(nlist): 
+        os.write(d,input[i].encode())
+        out = b' '
+        # let's wait one second before reading output (let's give device time to answer)
+        print(input[i])
+        if(input[i][-1]=="?"):   #If the last character of the request is a question 
+            out=os.read(d,1024)  #Print out the response
+            print(out.decode())
+    os.close(d)
+
 # def SDG7102A_SWEEP(HLEV=0.2):
 
 #     d = os.open('/dev/usbtmc0', os.O_RDWR)
