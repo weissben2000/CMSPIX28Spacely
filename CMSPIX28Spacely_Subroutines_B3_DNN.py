@@ -382,34 +382,27 @@ def DNN(
     return None
 
 
-def DNN_power(n_tb=100, waitTime=1.4, dnnwaitTime=1):
+def DNN_power(n_tb=100, waitTime=1.4, dnnwaitTime=1, pNoiseBool=False, vth0=0.014, vth1=0.083, vth2=0.128):
 
     startTime = time.time()
     SDG7102A_INJ_CONT()
     time.sleep(waitTime)
-
-    testType = "DNN"
-    dataDir=FNAL_SETTINGS["storageDirectory"]
-    chipInfo = f"ChipVersion{FNAL_SETTINGS['chipVersion']}_ChipID{FNAL_SETTINGS['chipID']}_SuperPix{2 if V_LEVEL['SUPERPIX'] == 0.9 else 1}"
-    testInfo = (datetime.now().strftime("%Y.%m.%d_%H.%M.%S")) + f"_{testType}"
-    testInfo += f"_vth0-{V_LEVEL['vth0']:.3f}_vth1-{V_LEVEL['vth1']:.3f}_vth2-{V_LEVEL['vth2']:.3f}"
-    # create temp directory to delete dirs between ABC_temp and ABC_dnnPower
-    outDirTemp = os.path.join(dataDir, chipInfo, testInfo)
-    outDirTemp = outDirTemp + str("_temp")
-    print(f"Saving results to {outDirTemp}")
-    os.makedirs(outDirTemp, exist_ok=True)
-    os.chmod(outDirTemp, mode=0o777)
-
-    Ivddd_post = []
-    for i in range(n_tb):
-        if i%10==100:
-            print(f"Running DNN power test for test vector {i+1}/{n_tb}")
+    suffix="OnHit"
+    if pNoiseBool:
+        suffix="OnNoise"
+        SDG7102A_INJ_BURST()
+        SDG7102A_SWEEP(HLEV=0)
+        V_PORT["vth0"].set_voltage(vth0)
+        V_LEVEL["vth0"] = vth0
+        V_PORT["vth1"].set_voltage(vth1)
+        V_LEVEL["vth1"] = vth1
+        V_PORT["vth2"].set_voltage(vth2)
+        V_LEVEL["vth2"] = vth2
         #set pulse generator in normal condition
-
         DNN(
         progDebug=False,
         loopbackBit=0, 
-        patternIndexes = [i], 
+        patternIndexes = [0], 
         verbose=False, 
         injection_delay='1E', 
         bxclk_period='28', 
@@ -428,20 +421,73 @@ def DNN_power(n_tb=100, waitTime=1.4, dnnwaitTime=1):
         pixel_compout_csv=None, 
         dataDir = FNAL_SETTINGS["storageDirectory"],
         dateTime = None,
-        vth0=0.08,
-        vth1=0.16,
-        vth2=0.32,
+        vth0=vth0,
+        vth1=vth1,
+        vth2=vth2,
         readYproj=True,
         dnnPowerBool = True
         )
-        
-        #set pulse generator in continuous injection
-        time.sleep(dnnwaitTime)
-        Ivddd_post.append(V_PORT["vddd"].get_current())
+        time.sleep(3*dnnwaitTime) # wait for some time just in case
 
-        print("Ivdd_post=",Ivddd_post)
+    testType = "DNN"
+    dataDir=FNAL_SETTINGS["storageDirectory"]
+    chipInfo = f"ChipVersion{FNAL_SETTINGS['chipVersion']}_ChipID{FNAL_SETTINGS['chipID']}_SuperPix{2 if V_LEVEL['SUPERPIX'] == 0.9 else 1}"
+    testInfo = (datetime.now().strftime("%Y.%m.%d_%H.%M.%S")) + f"_{testType}"
+    testInfo += f"_vth0-{V_LEVEL['vth0']:.3f}_vth1-{V_LEVEL['vth1']:.3f}_vth2-{V_LEVEL['vth2']:.3f}"
+    # create temp directory to delete dirs between ABC_temp and ABC_dnnPower
+    outDirTemp = os.path.join(dataDir, chipInfo, testInfo)
+    outDirTemp = outDirTemp + str("_temp")
+    print(f"Saving results to {outDirTemp}")
+    os.makedirs(outDirTemp, exist_ok=True)
+    os.chmod(outDirTemp, mode=0o777)
+    Ivddd_post = []
+
+    for i in range(n_tb):
+        if i%10==100:
+            print(f"Running DNN power test for test vector {i+1}/{n_tb}")
+        if pNoiseBool:
+            time.sleep(0.1) # no injection happening, only triggering on noise, so wait time has been reduced.
+            print("Ivdd_post=",Ivddd_post)
+            Ivddd_post.append(V_PORT["vddd"].get_current())
+        else:
+            #set pulse generator in normal condition
+            DNN(
+            progDebug=False,
+            loopbackBit=0, 
+            patternIndexes = [i], 
+            verbose=False, 
+            injection_delay='1E', 
+            bxclk_period='28', 
+            startBxclkState='0',
+            scan_load_delay='13', 
+            cfg_test_delay='5', 
+            cfg_test_sample='20', 
+            progResetMask='0', 
+            configclk_period='64', 
+            test_delay='14', 
+            test_sample='0F', 
+            bxclk_delay='12',
+            configClkGate='0',
+            scanLoadPhase ='26', 
+            dnn_csv=None, 
+            pixel_compout_csv=None, 
+            dataDir = FNAL_SETTINGS["storageDirectory"],
+            dateTime = None,
+            vth0=0.08,
+            vth1=0.16,
+            vth2=0.32,
+            readYproj=True,
+            dnnPowerBool = True
+            )
+            #set pulse generator in continuous injection
+            time.sleep(dnnwaitTime)
+            Ivddd_post.append(V_PORT["vddd"].get_current())
+            print("Ivdd_post=",Ivddd_post)
     SDG7102A_INJ_BURST()
     time.sleep(waitTime)
+    if pNoiseBool:
+        SDG7102A_SWEEP(HLEV=0)
+        time.sleep(dnnwaitTime)
     Ivddd_pre=V_PORT["vddd"].get_current()
     print("Ivdd_pre=", Ivddd_pre)
     print("time elapsed = ", time.time()-startTime)
@@ -453,7 +499,7 @@ def DNN_power(n_tb=100, waitTime=1.4, dnnwaitTime=1):
     testInfo += f"_vth0-{V_LEVEL['vth0']:.3f}_vth1-{V_LEVEL['vth1']:.3f}_vth2-{V_LEVEL['vth2']:.3f}"
     # output directory that saves the current values
     outDirPower = os.path.join(dataDir, chipInfo, testInfo)
-    outDirPower = outDirPower + str("_dnnPower")
+    outDirPower = outDirPower + str("_dnnPower") + str(suffix)
     print(f"Saving results to {outDirPower}")
     os.makedirs(outDirPower, exist_ok=True)
     os.chmod(outDirPower, mode=0o777)
