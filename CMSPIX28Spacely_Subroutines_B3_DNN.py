@@ -443,11 +443,11 @@ def DNN_power(n_tb=100, waitTime=1.4, dnnwaitTime=1, pNoiseBool=False, vth0=0.01
     Ivddd_post = []
 
     for i in range(n_tb):
-        if i%10==100:
+        if i%1000==0:
             print(f"Running DNN power test for test vector {i+1}/{n_tb}")
         if pNoiseBool:
             time.sleep(0.1) # no injection happening, only triggering on noise, so wait time has been reduced.
-            print("Ivdd_post=",Ivddd_post)
+            # print("Ivdd_post=",Ivddd_post)
             Ivddd_post.append(V_PORT["vddd"].get_current())
         else:
             #set pulse generator in normal condition
@@ -473,16 +473,16 @@ def DNN_power(n_tb=100, waitTime=1.4, dnnwaitTime=1, pNoiseBool=False, vth0=0.01
             pixel_compout_csv=None, 
             dataDir = FNAL_SETTINGS["storageDirectory"],
             dateTime = None,
-            vth0=0.08,
-            vth1=0.16,
-            vth2=0.32,
+            vth0=0.014,#0.08,
+            vth1=0.083,#0.16,
+            vth2=0.128,#0.32,
             readYproj=True,
             dnnPowerBool = True
             )
             #set pulse generator in continuous injection
             time.sleep(dnnwaitTime)
             Ivddd_post.append(V_PORT["vddd"].get_current())
-            print("Ivdd_post=",Ivddd_post)
+            # print("Ivdd_post=",Ivddd_post)
     SDG7102A_INJ_BURST()
     time.sleep(waitTime)
     if pNoiseBool:
