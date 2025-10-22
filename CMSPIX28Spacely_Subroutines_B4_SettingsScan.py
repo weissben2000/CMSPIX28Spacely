@@ -383,6 +383,7 @@ def calibrationMatrixHighStat(
             v_asic = 0 
             return 
         SDG7102A_SWEEP(v_asic*2)
+    
         time.sleep(tsleep2)  # necessary to prevent issue in the pulse generator settling time
 
         # list to store data and settings to scan over

@@ -3,6 +3,8 @@ from Master_Config import *
 
 # python modules
 import sys
+import time
+import pandas as pd
 try:
     import os
 except ImportError as e:
@@ -27,12 +29,39 @@ def DNN(
     bxclk_delay='12',
     configClkGate='0',
     scanLoadPhase ='26', 
-    dnn_csv=os.path.join(os.getcwd(),"spacely-asic-config/CMSPIX28Spacely/csv/b5_w5_b2_w2_pixel_bin.csv"), 
-    pixel_compout_csv=os.path.join(os.getcwd(),"spacely-asic-config/CMSPIX28Spacely/csv/compouts.csv"), 
-    hidden_csv=os.path.join(os.getcwd(),"spacely-asic-config/CMSPIX28Spa\
-cely/csv/hidden_debug.csv"),
-    outDir = "./", 
-    readYproj=True):
+    dnn_csv=None, 
+    pixel_compout_csv=None, 
+    dataDir = FNAL_SETTINGS["storageDirectory"],
+    dateTime = None,
+    vth0=0.08,
+    vth1=0.16,
+    vth2=0.32,
+    readYproj=True,
+    dnnPowerBool = False
+):
+
+    #set threshold to higher values
+
+    V_PORT["vth0"].set_voltage(vth0)
+    V_LEVEL["vth0"] = vth0
+    V_PORT["vth1"].set_voltage(vth1)
+    V_LEVEL["vth1"] = vth1
+    V_PORT["vth2"].set_voltage(vth2)
+    V_LEVEL["vth2"] = vth2
+
+    if dnnPowerBool==False:
+        SDG7102A_SWEEP(HLEV=0.3) # Set the pulse generator to 0.3V
+    
+    testType = "DNN"
+
+    chipInfo = f"ChipVersion{FNAL_SETTINGS['chipVersion']}_ChipID{FNAL_SETTINGS['chipID']}_SuperPix{2 if V_LEVEL['SUPERPIX'] == 0.9 else 1}"
+    testInfo = (dateTime if dateTime else datetime.now().strftime("%Y.%m.%d_%H.%M.%S")) + f"_{testType}"
+    testInfo += f"_vth0-{V_LEVEL['vth0']:.3f}_vth1-{V_LEVEL['vth1']:.3f}_vth2-{V_LEVEL['vth2']:.3f}"
+    # output directory
+    outDir = os.path.join(dataDir, chipInfo, testInfo)
+    print(f"Saving results to {outDir}")
+    os.makedirs(outDir, exist_ok=True)
+    os.chmod(outDir, mode=0o777)
 
     # Set the firmware to the default state
     fw_status_clear()
@@ -44,7 +73,8 @@ cely/csv/hidden_debug.csv"),
     sw_write32_0(hex_list)
 
     # First set up the pulse generator
-    SDG7102A_SWEEP(HLEV=0.4)
+    if dnnPowerBool==False:
+        SDG7102A_SWEEP(HLEV=0.6)
     
     # Program shift register
     hex_lists = [
@@ -53,6 +83,7 @@ cely/csv/hidden_debug.csv"),
         ["4'h1", "4'h3", "16'h0", "1'h1", "7'h64"] # OP_CODE_R_CFG_STATIC_0 : we read back
     ]
     sw_write32_0(hex_lists)
+
 
     # load all of the configs
     filename = pixel_compout_csv if pixel_compout_csv else "/asic/projects/C/CMS_PIX_28/benjamin/verilog/workarea/cms28_smartpix_verification/PnR_cms28_smartpix_verification_D/tb/dnn/csv/l6/compouts.csv"
@@ -82,6 +113,7 @@ cely/csv/hidden_debug.csv"),
             hex_lists = dnnConfig('/asic/projects/C/CMS_PIX_28/benjamin/verilog/workarea/cms28_smartpix_verification/PnR_cms28_smartpix_verification_A/tb/dnn/csv/l6/b5_w5_b2_w2_pixel_bin_debug2.csv', pixelConfig = pixelConfig, hiddenBitCSV = hiddenBit)
         else:
             filename = dnn_csv if dnn_csv else '/asic/projects/C/CMS_PIX_28/benjamin/verilog/workarea/cms28_smartpix_verification/PnR_cms28_smartpix_verification_A/tb/dnn/csv/l6/b5_w5_b2_w2_pixel_bin.csv'
+            
             # hex_lists = dnnConfig('/asic/projects/C/CMS_PIX_28/benjamin/verilog/workarea/cms28_smartpix_verification/PnR_cms28_smartpix_verification_A/tb/dnn/csv/l6/b5_w5_b2_w2_pixel_bin.csv', pixelConfig = pixelConfig, hiddenBitCSV = hiddenBit)
             hex_lists = dnnConfig(filename, pixelConfig = pixelConfig, hiddenBitCSV = hiddenBit)
         sw_write32_0(hex_lists)
@@ -106,6 +138,8 @@ cely/csv/hidden_debug.csv"),
         # # We ran ROUTINE_ProgShiftRegs with debug mode ON and found the breaking point of the delay value to get the correct data in DATA_ARRAY 0 and DATA_ARRAY_1
         # We went 10% above breaking point
         time.sleep(0.02)
+        if dnnPowerBool:
+            return None
 
         # verbose and debug mode
         if(verbose==True and progDebug==True):
@@ -216,6 +250,7 @@ cely/csv/hidden_debug.csv"),
             
 
         sw_write32_0(hex_lists)
+
         # sw_read32_0, sw_read32_1, sw_read32_0_pass, sw_read32_1_pass = sw_read32() #print_code = "ibh")
         
         # each write CFG_ARRAY_0 is writing 16 bits. 768/16 = 48 writes in total.
@@ -240,6 +275,7 @@ cely/csv/hidden_debug.csv"),
 
 
         sw_write32_0(hex_lists)
+
         # sw_read32_0, sw_read32_1, sw_read32_0_pass, sw_read32_1_pass = sw_read32() 
         
         # OP_CODE_R_DATA_ARRAY_0 24 times = address 0, 1, 2, ... until I read all 24 words (32 bits). 
@@ -345,6 +381,136 @@ cely/csv/hidden_debug.csv"),
             print("Saving to: ", readoutOutputFile, iN)
 
     return None
+
+
+def DNN_power(n_tb=100, waitTime=1.4, dnnwaitTime=1, pNoiseBool=False, vth0=0.014, vth1=0.083, vth2=0.128):
+
+    startTime = time.time()
+    SDG7102A_INJ_CONT()
+    time.sleep(waitTime)
+    suffix="OnHit"
+    if pNoiseBool:
+        suffix="OnNoise"
+        SDG7102A_INJ_BURST()
+        SDG7102A_SWEEP(HLEV=0)
+        V_PORT["vth0"].set_voltage(vth0)
+        V_LEVEL["vth0"] = vth0
+        V_PORT["vth1"].set_voltage(vth1)
+        V_LEVEL["vth1"] = vth1
+        V_PORT["vth2"].set_voltage(vth2)
+        V_LEVEL["vth2"] = vth2
+        #set pulse generator in normal condition
+        DNN(
+        progDebug=False,
+        loopbackBit=0, 
+        patternIndexes = [0], 
+        verbose=False, 
+        injection_delay='1E', 
+        bxclk_period='28', 
+        startBxclkState='0',
+        scan_load_delay='13', 
+        cfg_test_delay='5', 
+        cfg_test_sample='20', 
+        progResetMask='0', 
+        configclk_period='64', 
+        test_delay='14', 
+        test_sample='0F', 
+        bxclk_delay='12',
+        configClkGate='0',
+        scanLoadPhase ='26', 
+        dnn_csv=None, 
+        pixel_compout_csv=None, 
+        dataDir = FNAL_SETTINGS["storageDirectory"],
+        dateTime = None,
+        vth0=vth0,
+        vth1=vth1,
+        vth2=vth2,
+        readYproj=True,
+        dnnPowerBool = True
+        )
+        time.sleep(3*dnnwaitTime) # wait for some time just in case
+
+    testType = "DNN"
+    dataDir=FNAL_SETTINGS["storageDirectory"]
+    chipInfo = f"ChipVersion{FNAL_SETTINGS['chipVersion']}_ChipID{FNAL_SETTINGS['chipID']}_SuperPix{2 if V_LEVEL['SUPERPIX'] == 0.9 else 1}"
+    testInfo = (datetime.now().strftime("%Y.%m.%d_%H.%M.%S")) + f"_{testType}"
+    testInfo += f"_vth0-{V_LEVEL['vth0']:.3f}_vth1-{V_LEVEL['vth1']:.3f}_vth2-{V_LEVEL['vth2']:.3f}"
+    # create temp directory to delete dirs between ABC_temp and ABC_dnnPower
+    outDirTemp = os.path.join(dataDir, chipInfo, testInfo)
+    outDirTemp = outDirTemp + str("_temp")
+    print(f"Saving results to {outDirTemp}")
+    os.makedirs(outDirTemp, exist_ok=True)
+    os.chmod(outDirTemp, mode=0o777)
+    Ivddd_post = []
+
+    for i in range(n_tb):
+        if i%1000==0:
+            print(f"Running DNN power test for test vector {i+1}/{n_tb}")
+        if pNoiseBool:
+            time.sleep(0.1) # no injection happening, only triggering on noise, so wait time has been reduced.
+            # print("Ivdd_post=",Ivddd_post)
+            Ivddd_post.append(V_PORT["vddd"].get_current())
+        else:
+            #set pulse generator in normal condition
+            DNN(
+            progDebug=False,
+            loopbackBit=0, 
+            patternIndexes = [i], 
+            verbose=False, 
+            injection_delay='1E', 
+            bxclk_period='28', 
+            startBxclkState='0',
+            scan_load_delay='13', 
+            cfg_test_delay='5', 
+            cfg_test_sample='20', 
+            progResetMask='0', 
+            configclk_period='64', 
+            test_delay='14', 
+            test_sample='0F', 
+            bxclk_delay='12',
+            configClkGate='0',
+            scanLoadPhase ='26', 
+            dnn_csv=None, 
+            pixel_compout_csv=None, 
+            dataDir = FNAL_SETTINGS["storageDirectory"],
+            dateTime = None,
+            vth0=0.014,#0.08,
+            vth1=0.083,#0.16,
+            vth2=0.128,#0.32,
+            readYproj=True,
+            dnnPowerBool = True
+            )
+            #set pulse generator in continuous injection
+            time.sleep(dnnwaitTime)
+            Ivddd_post.append(V_PORT["vddd"].get_current())
+            # print("Ivdd_post=",Ivddd_post)
+    SDG7102A_INJ_BURST()
+    time.sleep(waitTime)
+    if pNoiseBool:
+        SDG7102A_SWEEP(HLEV=0)
+        time.sleep(dnnwaitTime)
+    Ivddd_pre=V_PORT["vddd"].get_current()
+    print("Ivdd_pre=", Ivddd_pre)
+    print("time elapsed = ", time.time()-startTime)
+
+    testType = "DNN"
+    dataDir=FNAL_SETTINGS["storageDirectory"]
+    chipInfo = f"ChipVersion{FNAL_SETTINGS['chipVersion']}_ChipID{FNAL_SETTINGS['chipID']}_SuperPix{2 if V_LEVEL['SUPERPIX'] == 0.9 else 1}"
+    testInfo = (datetime.now().strftime("%Y.%m.%d_%H.%M.%S")) + f"_{testType}"
+    testInfo += f"_vth0-{V_LEVEL['vth0']:.3f}_vth1-{V_LEVEL['vth1']:.3f}_vth2-{V_LEVEL['vth2']:.3f}"
+    # output directory that saves the current values
+    outDirPower = os.path.join(dataDir, chipInfo, testInfo)
+    outDirPower = outDirPower + str("_dnnPower") + str(suffix)
+    print(f"Saving results to {outDirPower}")
+    os.makedirs(outDirPower, exist_ok=True)
+    os.chmod(outDirPower, mode=0o777)
+    Ivddd_pre = [Ivddd_pre]*n_tb
+    df = pd.DataFrame()
+    df["Ivddd_pre"] = Ivddd_pre
+    df["Ivddd_post"] = Ivddd_post
+    df.to_csv(outDirPower+"/Ivddd.csv", index=False)
+
+
 
 def DNN_analyse(debug=False, latency_bit=37, bxclkFreq='28', readout_CSV="readout.csv", debug_tv=0):
     #divider used in the test for bxclk frequency
