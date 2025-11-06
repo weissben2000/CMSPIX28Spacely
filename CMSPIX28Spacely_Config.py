@@ -1,7 +1,7 @@
 
 
 INSTR = {"car" : {"type": "Caribou",
-                  "host":"192.168.1.24",
+                  "host":"192.168.150.7",
                   "port":12345,
                   "device":"SpacelyCaribouBasic"}}
 
@@ -73,8 +73,8 @@ I_CHAN = {
 V_LEVEL = {"vdda": 0.9,
            "vddd": 0.9,
            "vth0": 0.031, #0.05 is 1000e-
-           "vth1": 0.031, #0.08 is 1500e-
-           "vth2": 0.031, #0.11 is 2000e-
+           "vth1": 0.05, #0.08 is 1500e-
+           "vth2": 0.11, #0.11 is 2000e-
            "VMC": 0.4,
            "SUPERPIX":0,
            "INJ_1": 2,
@@ -135,7 +135,7 @@ I_VOLT_LIMIT = {
 
 
 FNAL_SETTINGS = {
-    "storageDirectory" : "/mnt/local/CMSPIX28/data",#"/mnt/local/CMSPIX28/data/ChipVersion1_ChipID17_SuperPix1/Pnoise",#"/mnt/local/CMSPIX28/Scurve/data",#
+    "storageDirectory" :"/nfs/cms/smartpix/CMSPIX28_DAQ/Results", #"/mnt/local/CMSPIX28/data",#"/mnt/local/CMSPIX28/data/ChipVersion1_ChipID17_SuperPix1/Pnoise",#"/mnt/local/CMSPIX28/Scurve/data",#
     "chipVersion" : 1,
-    "chipID" : 17
+    "chipID" : 25
 }
