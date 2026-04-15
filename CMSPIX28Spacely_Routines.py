@@ -58,6 +58,15 @@ def onstartup():
         print(f"DVDD current is {iDVDD}")
         print(f"AVDD current is {iAVDD}")
 
+    init_awg = input("Step 4: Initialize AWG (SDG7102A) ('n' to skip)>>>")
+
+    if ('n') in init_awg:
+        print("Skipped!")
+    else:
+        print("Initializing SDG7102A")
+        SDG7102A_INIT()
+        print("SDG7102A initialized!")
+
 
 #<<Registered w/ Spacely as ROUTINE 0, call as ~r0>>
 def ROUTINE_ProgShiftRegRaw(configclk_period='64', cfg_test_delay='5', cfg_test_sample='20',cfg_test_gate_config_clk='1'):
@@ -72,11 +81,11 @@ def ROUTINE_ProgShiftRegs(progDebug=False, verbose=False, configclk_period='64',
     return ProgShiftRegs(progDebug, verbose, configclk_period, cfg_test_delay, cfg_test_sample,cfg_test_gate_config_clk, iP, timeSleep)
 
 #<<Registered w/ Spacely as ROUTINE 3, call as ~r3>>
-def ROUTINE_ScanChainOneShot(scan_load_delay='13', startBxclkState='0', bxclk_delay='12', bxclk_period='28', injection_delay='1E', scanLoopBackBit='0', test_sample='F', test_delay='14', scanLoadPhase ='26'):
+def ROUTINE_ScanChainOneShot(scan_load_delay='19', startBxclkState='0', bxclk_delay='12', bxclk_period='28', injection_delay='7', scanLoopBackBit='0', test_sample='F', test_delay='14', scanLoadPhase ='26'):
     return ScanChainOneShot(scan_load_delay, startBxclkState, bxclk_delay, bxclk_period, injection_delay, scanLoopBackBit, test_sample, test_delay, scanLoadPhase )
 
 #<<Registered w/ Spacely as ROUTINE 4, call as ~r4>>
-def ROUTINE_PreProgSCurve(scanLoadPhase = '26', scan_load_delay='13', startBxclkState='0', bxclk_delay='12', bxclk_period='28', injection_delay='1D', scanLoopBackBit='0', test_sample='0F', test_delay='14', v_min = 0.001, v_max=0.4, v_step=0.001, nsample=1000, nPix=0):
+def ROUTINE_PreProgSCurve(scanLoadPhase = '26', scan_load_delay='19', startBxclkState='0', bxclk_delay='12', bxclk_period='28', injection_delay='7', scanLoopBackBit='0', test_sample='F', test_delay='14', v_min = 0.001, v_max=0.4, v_step=0.001, nsample=1000, nPix=252):
     return PreProgSCurve(scanLoadPhase, scan_load_delay, startBxclkState, bxclk_delay, bxclk_period, injection_delay, scanLoopBackBit, test_sample, test_delay, v_min, v_max, v_step, nsample, nPix)
 
 #<<Registered w/ Spacely as ROUTINE 5, call as ~r5>>

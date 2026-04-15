@@ -27,11 +27,11 @@ except ImportError as e:
     
 def PreProgSCurve(
         scanLoadPhase = '26',
-        scan_load_delay = '13', 
+        scan_load_delay = '19', 
         startBxclkState = '0', 
         bxclk_delay = '12', #'0B', 
         bxclk_period = '28',
-        injection_delay = '1E', # vin_test_trig_out in the FW
+        injection_delay = '7', # vin_test_trig_out in the FW
         scanLoopBackBit = '0', 
         test_sample = '0F', 
         test_delay = '14', 
@@ -226,11 +226,11 @@ def PreProgSCurve(
 #-----------------------------------------------------------------------
 
 def PreProgSCurveBurst(
-        scan_load_delay = '13', 
+        scan_load_delay = '19', 
         startBxclkState = '0', 
         bxclk_delay = '12', #'11', 
         bxclk_period = '28',
-        injection_delay = '1E', #'17', 
+        injection_delay = '7', #'17', 
         scanLoopBackBit = '0', 
         test_sample = '0F', 
         scanLoadPhase = '26',
@@ -442,11 +442,11 @@ def SCurveMatrix():
         ProgPixelsOnly(configclk_period='64', cfg_test_delay='5', cfg_test_sample='20',cfg_test_gate_config_clk ='1', pixelList = [i], pixelValue=[1])
         
         PreProgSCurveBurst(
-            scan_load_delay = '13', 
+            scan_load_delay = '19', 
             startBxclkState = '0', 
             bxclk_delay = '11',         #superpix1 '11', superpix2 '12',
             bxclk_period = '28', 
-            injection_delay = '1C',     #superpix1 '1C', superpix2 '1E',
+            injection_delay = '7',     #superpix1 '1C', superpix2 '1E',
             scanLoopBackBit = '0', 
             test_sample = '0F', 
             scanLoadPhase ='25',        #superpix1 '25', superpix2 '26',
@@ -533,8 +533,8 @@ def SCurveSweepVTH(nPix=0):
     now = datetime.now().strftime("%Y.%m.%d_%H.%M.%S")
 
     # Sweep range
-    biasList = np.arange(0,0.3,0.01)
-    # biasList = [0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8]
+    #biasList = np.arange(0,0.3,0.01)
+    biasList = [0.04, 0.06, 0.08]
     # vthList = [1.5,1.6]
     for i in biasList:
         V_PORT["vth0"].set_voltage(i)
@@ -545,11 +545,11 @@ def SCurveSweepVTH(nPix=0):
         V_LEVEL["vth2"] = i
         V_PORT["vdda"].get_current()
         PreProgSCurveBurst(
-            scan_load_delay = '13', 
+            scan_load_delay = '19', 
             startBxclkState = '0', 
             bxclk_delay = '12', #'0B', 
             bxclk_period = '28', 
-            injection_delay = '1E', #'1D', 
+            injection_delay = '7', #'1D', 
             scanLoopBackBit = '0', 
             test_sample = '0F', 
             scanLoadPhase ='26',

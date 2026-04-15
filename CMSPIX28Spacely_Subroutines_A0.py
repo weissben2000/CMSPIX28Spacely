@@ -226,10 +226,11 @@ def SDG7102A_INIT():
     "C1:BTWV FALL,5e-10S",
     "C1:BTWV DLY,-0S",
     "C1:BTWV?",
-    "C1:OUTN ON",
+    "C1:OUTP ON",
     #"C1:OUTP LOAD,50",
     "C1:OUTP LOAD,HZ",
-    "C1:OUTP PLRT, INVT"
+    "C1:OUTP PLRT, INVT",
+
     ]
     nlist=len(input)
     for i in range(nlist): 
@@ -251,7 +252,7 @@ def SDG7102A_INJ_BURST():
     "C1:BSWV PERI,8e-6S",
     "C1:BSWV WIDTH, 1.6e-6S",
     "C1:BTWV STATE,ON",
-    "C1:OUTN ON",
+    "C1:OUTP ON",
     "C1:OUTP LOAD,HZ",
     "C1:OUTP PLRT, INVT"
     ]
@@ -277,7 +278,7 @@ def SDG7102A_INJ_CONT():
 
     "C1:BTWV STATE,OFF",
    
-    "C1:OUTN ON",
+    "C1:OUTP ON",
     #"C1:OUTP LOAD,50",
     "C1:OUTP LOAD,HZ",
     "C1:OUTP PLRT, INVT"

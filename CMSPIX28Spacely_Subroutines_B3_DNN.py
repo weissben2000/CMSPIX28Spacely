@@ -31,6 +31,7 @@ def DNN(
     scanLoadPhase ='26', 
     dnn_csv=None, 
     pixel_compout_csv=None, 
+    hidden_csv=None,
     dataDir = FNAL_SETTINGS["storageDirectory"],
     dateTime = None,
     vth0=0.08,
@@ -86,7 +87,7 @@ def DNN(
 
 
     # load all of the configs
-    filename = pixel_compout_csv if pixel_compout_csv else "/asic/projects/C/CMS_PIX_28/benjamin/verilog/workarea/cms28_smartpix_verification/PnR_cms28_smartpix_verification_D/tb/dnn/csv/l6/compouts.csv"
+    filename = pixel_compout_csv if pixel_compout_csv else MP65_SPECIFIC["compout_csv"]
     pixelLists, pixelValues = genPixelConfigFromInputCSV(filename)
 
     # loop over test cases
@@ -102,7 +103,7 @@ def DNN(
         
         # increment counter of number of patterns
         iN += 1
-        hiddenBit=hidden_csv if hidden_csv else "/asic/projects/C/CMS_PIX_28/benjamin/verilog/workarea/cms28_smartpix_verification/PnR_cms28_smartpix_verification_A/tb/dnn/csv/l6/hidden_debug.csv"
+        hiddenBit=hidden_csv if hidden_csv else MP65_SPECIFIC["debug_csv"]
 
         # pick up pixel config for the given pattern
         pixelConfig = genPixelProgramList(pixelLists[iP], pixelValues[iP])
@@ -112,7 +113,7 @@ def DNN(
         if(progDebug==True):
             hex_lists = dnnConfig('/asic/projects/C/CMS_PIX_28/benjamin/verilog/workarea/cms28_smartpix_verification/PnR_cms28_smartpix_verification_A/tb/dnn/csv/l6/b5_w5_b2_w2_pixel_bin_debug2.csv', pixelConfig = pixelConfig, hiddenBitCSV = hiddenBit)
         else:
-            filename = dnn_csv if dnn_csv else '/asic/projects/C/CMS_PIX_28/benjamin/verilog/workarea/cms28_smartpix_verification/PnR_cms28_smartpix_verification_A/tb/dnn/csv/l6/b5_w5_b2_w2_pixel_bin.csv'
+            filename = dnn_csv if dnn_csv else MP65_SPECIFIC["weights_csv"]
             
             # hex_lists = dnnConfig('/asic/projects/C/CMS_PIX_28/benjamin/verilog/workarea/cms28_smartpix_verification/PnR_cms28_smartpix_verification_A/tb/dnn/csv/l6/b5_w5_b2_w2_pixel_bin.csv', pixelConfig = pixelConfig, hiddenBitCSV = hiddenBit)
             hex_lists = dnnConfig(filename, pixelConfig = pixelConfig, hiddenBitCSV = hiddenBit)

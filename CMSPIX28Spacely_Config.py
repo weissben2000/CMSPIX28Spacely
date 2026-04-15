@@ -1,7 +1,7 @@
 
 
 INSTR = {"car" : {"type": "Caribou",
-                  "host":"192.168.1.24",
+                  "host":"192.168.150.7",
                   "port":12345,
                   "device":"SpacelyCaribouBasic"}}
 
@@ -15,7 +15,10 @@ V_SEQUENCE = ["vdda",
               "VMC", 
               "SUPERPIX", 
               "INJ_1",
-              "Ibias"
+              "Ibias",
+              "vdisc0",
+              "vdisc1"
+
 ]
 
 I_SEQUENCE = [
@@ -36,7 +39,9 @@ V_INSTR = {"vdda": "car",
            "VMC":"car",
            "SUPERPIX":"car",
            "INJ_1": "car",
-           "Ibias": "car"
+           "Ibias": "car",
+           "vdisc0" : "car",
+           "vdisc1" : "car"
 }
 
 I_INSTR = {
@@ -57,7 +62,9 @@ V_CHAN = {"vdda": "PWR_OUT_1",
            "VMC":"BIAS_1",
            "SUPERPIX":"BIAS_5",
            "INJ_1":"INJ_1",
-           "Ibias":"BIAS_26"
+           "Ibias":"BIAS_26",
+           "vdisc0":"BIAS_7",
+           "vdisc1":"BIAS_9"
 }
 
 I_CHAN = {
@@ -73,12 +80,14 @@ I_CHAN = {
 V_LEVEL = {"vdda": 0.9,
            "vddd": 0.9,
            "vth0": 0.031, #0.05 is 1000e-
-           "vth1": 0.031, #0.08 is 1500e-
-           "vth2": 0.031, #0.11 is 2000e-
+           "vth1": 0.05, #0.08 is 1500e-
+           "vth2": 0.11, #0.11 is 2000e-
            "VMC": 0.4,
            "SUPERPIX":0,
            "INJ_1": 2,
-           "Ibias": 0.6            #TUNE TO have 5uW/pixel
+           "Ibias": 0.6,            #TUNE TO have 5uW/pixel
+           "vdisc0" : 0.0,
+           "vdisc1" : 0.0
 }
 
 I_LEVEL = {
@@ -99,7 +108,9 @@ V_WARN_VOLTAGE = {"vdda": [0.82,0.99],
            "VMC": [0,0.4],
            "SUPERPIX":[0,0.99],
            "INJ_1": [1.8,2.2],
-           "Ibias": [0,0.9]
+           "Ibias": [0,0.9],
+           "vdisc0": [0, 3.3],
+           "vdisc1": [0, 3.3]
       }
 
 V_PORT  = {"vdda": None,
@@ -110,7 +121,9 @@ V_PORT  = {"vdda": None,
            "VMC":None,
            "SUPERPIX":None,
            "INJ_1": None,
-           "Ibias": None
+           "Ibias": None,
+           "vdisc0": None,
+           "vdisc1": None
 }
 
 I_PORT = {
@@ -135,7 +148,15 @@ I_VOLT_LIMIT = {
 
 
 FNAL_SETTINGS = {
-    "storageDirectory" : "/mnt/local/CMSPIX28/data",#"/mnt/local/CMSPIX28/data/ChipVersion1_ChipID17_SuperPix1/Pnoise",#"/mnt/local/CMSPIX28/Scurve/data",#
+    "storageDirectory" :"/nfs/cms/smartpix/CMSPIX28_DAQ/Results", #"/mnt/local/CMSPIX28/data",#"/mnt/local/CMSPIX28/data/ChipVersion1_ChipID17_SuperPix1/Pnoise",#"/mnt/local/CMSPIX28/Scurve/data",#
     "chipVersion" : 1,
-    "chipID" : 17
+    "chipID" : 25
 }
+
+MP65_SPECIFIC = {
+        "debug_csv"     : "/nfs/ceph/public/cms/smartpix/CMSPIX28_DAQ/spacely/PySpacely/spacely-asic-config/CMSPIX28Spacely/csv/hidden_debug.csv",
+        "weights_csv"   : "/nfs/ceph/public/cms/smartpix/CMSPIX28_DAQ/spacely/PySpacely/spacely-asic-config/CMSPIX28Spacely/csv/b5_w5_b2_w2_pixel_bin.csv",
+        "compout_csv"  : "/nfs/ceph/public/cms/smartpix/CMSPIX28_DAQ/spacely/PySpacely/spacely-asic-config/CMSPIX28Spacely/csv/compouts.csv"
+}
+
+

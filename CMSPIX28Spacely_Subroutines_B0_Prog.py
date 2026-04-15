@@ -21,7 +21,7 @@ except ImportError as e:
 # it programs pixel 0 by default
 #-----------------------------------------------------------------------
 
-def ProgShiftRegRaw(configclk_period='64', cfg_test_delay='5', cfg_test_sample='20',cfg_test_gate_config_clk='1'):
+def ProgShiftRegRaw(configclk_period='64', cfg_test_delay='5', cfg_test_sample='20',cfg_test_gate_config_clk='1',data ="0000"  ):
 
     #FW reset followed with Status reset
     fw_status_clear()
@@ -55,7 +55,7 @@ def ProgShiftRegRaw(configclk_period='64', cfg_test_delay='5', cfg_test_sample='
     # write on array1
     # pixels are programmed between addresses [68] and [99] (see figure 6 from report)    
     array0 = hex_list
-    hex_list = [["4'h1", "4'h8", "8'h" + hex(i)[2:], "16'h0000"] for i in range(256)]
+    hex_list = [["4'h1", "4'h8", "8'h" + hex(i)[2:], "16'h"+data] for i in range(256)]
     #hex_list[69] = ["4'h1", "4'h8", "8'h45", "16'h0000"]    
     #hex_list[68] = ["4'h1", "4'h8", "8'h44", "16'h003F"]
     #hex_list[67] = ["4'h1", "4'h8", "8'h43", "16'hFFFF"]  
@@ -109,7 +109,7 @@ def ProgShiftRegRaw(configclk_period='64', cfg_test_delay='5', cfg_test_sample='
 # there is a debug interface that needs to be reworked to check that what is
 #-----------------------------------------------------------------------
 
-def ProgPixelsOnly(configclk_period='64', cfg_test_delay='5', cfg_test_sample='20',cfg_test_gate_config_clk='1',pixelList = [0], pixelValue=[1]):
+def ProgPixelsOnly(configclk_period='64', cfg_test_delay='14', cfg_test_sample='0F',cfg_test_gate_config_clk='1',pixelList = [0], pixelValue=[1]):
     fw_status_clear()
 
     hex_list = [
