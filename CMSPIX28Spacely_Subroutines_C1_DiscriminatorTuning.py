@@ -102,6 +102,16 @@ def _get_qdense_batchnorm_fallback():
             self.ema_freeze_delay = ema_freeze_delay
             self.folding_mode = folding_mode
 
+        def build(self, input_shape):
+            super().build(input_shape)
+            # Keep compatibility with checkpoints that store this variable.
+            self._iteration = tf.Variable(
+                -1,
+                trainable=False,
+                name="iteration",
+                dtype=tf.int64,
+            )
+
         def call(self, inputs, training=None):
             dense_out = tf.keras.backend.dot(inputs, self.kernel)
             if self.use_bias:
@@ -127,13 +137,20 @@ def _get_qdense_batchnorm_fallback():
 
 
 def _make_qkeras_custom_objects():
+    import qkeras
     import qkeras.utils as qutils
 
     custom_objects = {}
     qutils._add_supported_quantized_objects(custom_objects)
 
-    if "QDenseBatchnorm" not in custom_objects:
-        custom_objects["QDenseBatchnorm"] = _get_qdense_batchnorm_fallback()
+    qdense_bn = custom_objects.get("QDenseBatchnorm")
+    if qdense_bn is None:
+        qdense_bn = _get_qdense_batchnorm_fallback()
+        custom_objects["QDenseBatchnorm"] = qdense_bn
+
+    # filter/model.py uses `from qkeras import *`; make sure symbol exists there.
+    if not hasattr(qkeras, "QDenseBatchnorm"):
+        setattr(qkeras, "QDenseBatchnorm", qdense_bn)
 
     return custom_objects
 
@@ -170,16 +187,23 @@ def run_qkeras_inference(yprofiles, qkeras_model_file, model_pipeline_dir, batch
         raise ValueError(f"Expected yprofiles shape (N,16), got {yprofiles.shape}")
 
     md = _load_qkeras_model_module(model_pipeline_dir)
+    _make_qkeras_custom_objects()
     try:
         qmodel = md.CreateQModel(shape=(16,), model_file=qkeras_model_file)
     except Exception as e:
-        # Fallback path for environments where qkeras misses QDenseBatchnorm.
-        if "QDenseBatchnorm" not in str(e):
+        emsg = str(e)
+        # Follow filter repo architecture path for weights-only files or
+        # deserialization mismatches: build model then load weights.
+        if (
+            "No model config found" in emsg
+            or "no model config found" in emsg
+            or ("expects" in emsg and "weights" in emsg)
+            or "QDenseBatchnorm" in emsg
+        ):
+            qmodel = md.CreateQModel(shape=(16,), model_file=None)
+            qmodel.load_weights(qkeras_model_file)
+        else:
             raise
-        import tensorflow as tf
-
-        custom_objects = _make_qkeras_custom_objects()
-        qmodel = tf.keras.models.load_model(qkeras_model_file, custom_objects=custom_objects)
     logits = qmodel.predict(yprofiles, batch_size=batch_size, verbose=0)
     predictions = np.argmax(logits, axis=1).astype(np.int32)
     return {"logits": logits, "predictions": predictions}
