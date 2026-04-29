@@ -123,3 +123,46 @@ def ROUTINE_SettingsScan(
 #<<Registered w/ Spacely as ROUTINE 9, call as ~r9>>
 def ROUTINE_DNNTraining(asic_training=False):
     return DNNTraining(asic_training = asic_training)
+
+
+#<<Registered w/ Spacely as ROUTINE 10, call as ~r10>>
+def ROUTINE_DNNThresholdOptimize(
+        qkeras_model_file=None,
+        model_pipeline_dir=None,
+        patternIndexes=None,
+        n_test_vectors=1,
+        init_vdisc0=0.0,
+        init_vdisc1=0.0,
+        step_vdisc0=0.01,
+        step_vdisc1=0.01,
+        max_iters=8,
+        method="baseline"
+):
+    method = str(method).strip().lower()
+    if method == "experimental":
+        return optimize_discriminator_thresholds_experimental(
+            qkeras_model_file=qkeras_model_file,
+            model_pipeline_dir=model_pipeline_dir,
+            patternIndexes=patternIndexes,
+            n_test_vectors=n_test_vectors,
+            init_vdisc0=init_vdisc0,
+            init_vdisc1=init_vdisc1,
+            step_vdisc0=step_vdisc0,
+            step_vdisc1=step_vdisc1,
+            max_iters=max_iters,
+            dnn_kwargs={"readYproj": True},
+        )
+    if method == "baseline":
+        return optimize_discriminator_thresholds(
+            qkeras_model_file=qkeras_model_file,
+            model_pipeline_dir=model_pipeline_dir,
+            patternIndexes=patternIndexes,
+            n_test_vectors=n_test_vectors,
+            init_vdisc0=init_vdisc0,
+            init_vdisc1=init_vdisc1,
+            step_vdisc0=step_vdisc0,
+            step_vdisc1=step_vdisc1,
+            max_iters=max_iters,
+            dnn_kwargs={"readYproj": True},
+        )
+    raise ValueError("method must be 'baseline' or 'experimental'")

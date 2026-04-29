@@ -38,7 +38,8 @@ def DNN(
     vth1=0.16,
     vth2=0.32,
     readYproj=True,
-    dnnPowerBool = False
+    dnnPowerBool = False,
+    return_data=False
 ):
 
     #set threshold to higher values
@@ -381,6 +382,12 @@ def DNN(
 
             print("Saving to: ", readoutOutputFile, iN)
 
+    if return_data:
+        return {
+            "outDir": outDir,
+            "yprofiles": np.array(yprofiles, dtype=np.int32) if readYproj else None,
+            "readouts": list(readouts),
+        }
     return None
 
 

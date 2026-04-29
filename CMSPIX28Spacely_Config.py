@@ -156,7 +156,9 @@ FNAL_SETTINGS = {
 MP65_SPECIFIC = {
         "debug_csv"     : "/nfs/ceph/public/cms/smartpix/CMSPIX28_DAQ/spacely/PySpacely/spacely-asic-config/CMSPIX28Spacely/csv/hidden_debug.csv",
         "weights_csv"   : "/nfs/ceph/public/cms/smartpix/CMSPIX28_DAQ/spacely/PySpacely/spacely-asic-config/CMSPIX28Spacely/csv/b5_w5_b2_w2_pixel_bin.csv",
-        "compout_csv"  : "/nfs/ceph/public/cms/smartpix/CMSPIX28_DAQ/spacely/PySpacely/spacely-asic-config/CMSPIX28Spacely/csv/compouts.csv"
+        "compout_csv"  : "/nfs/ceph/public/cms/smartpix/CMSPIX28_DAQ/spacely/PySpacely/spacely-asic-config/CMSPIX28Spacely/csv/compouts.csv",
+        "qkeras_model_file": "",
+        "qkeras_model_pipeline_dir": ""
 }
 
 
