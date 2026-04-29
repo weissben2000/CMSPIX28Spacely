@@ -10,6 +10,134 @@ import csv
 import os
 
 
+def _get_qdense_batchnorm_fallback():
+    """
+    Local compatibility implementation based on qkeras PR #74.
+    Used only when the installed qkeras package does not expose QDenseBatchnorm.
+    """
+    from qkeras.qlayers import QDense
+    from tensorflow.keras import layers
+    import tensorflow as tf
+
+    class QDenseBatchnorm(QDense):
+        def __init__(
+            self,
+            units,
+            activation=None,
+            use_bias=True,
+            kernel_initializer="he_normal",
+            bias_initializer="zeros",
+            kernel_regularizer=None,
+            bias_regularizer=None,
+            activity_regularizer=None,
+            kernel_constraint=None,
+            bias_constraint=None,
+            kernel_quantizer=None,
+            bias_quantizer=None,
+            kernel_range=None,
+            bias_range=None,
+            axis=-1,
+            momentum=0.99,
+            epsilon=0.001,
+            center=True,
+            scale=True,
+            beta_initializer="zeros",
+            gamma_initializer="ones",
+            moving_mean_initializer="zeros",
+            moving_variance_initializer="ones",
+            beta_regularizer=None,
+            gamma_regularizer=None,
+            beta_constraint=None,
+            gamma_constraint=None,
+            renorm=False,
+            renorm_clipping=None,
+            renorm_momentum=0.99,
+            fused=None,
+            trainable=True,
+            virtual_batch_size=None,
+            adjustment=None,
+            ema_freeze_delay=None,
+            folding_mode="ema_stats_folding",
+            **kwargs,
+        ):
+            super().__init__(
+                units=units,
+                activation=activation,
+                use_bias=use_bias,
+                kernel_initializer=kernel_initializer,
+                bias_initializer=bias_initializer,
+                kernel_regularizer=kernel_regularizer,
+                bias_regularizer=bias_regularizer,
+                activity_regularizer=activity_regularizer,
+                kernel_constraint=kernel_constraint,
+                bias_constraint=bias_constraint,
+                kernel_quantizer=kernel_quantizer,
+                bias_quantizer=bias_quantizer,
+                kernel_range=kernel_range,
+                bias_range=bias_range,
+                **kwargs,
+            )
+            self.batchnorm = layers.BatchNormalization(
+                axis=axis,
+                momentum=momentum,
+                epsilon=epsilon,
+                center=center,
+                scale=scale,
+                beta_initializer=beta_initializer,
+                gamma_initializer=gamma_initializer,
+                moving_mean_initializer=moving_mean_initializer,
+                moving_variance_initializer=moving_variance_initializer,
+                beta_regularizer=beta_regularizer,
+                gamma_regularizer=gamma_regularizer,
+                beta_constraint=beta_constraint,
+                gamma_constraint=gamma_constraint,
+                renorm=renorm,
+                renorm_clipping=renorm_clipping,
+                renorm_momentum=renorm_momentum,
+                fused=fused,
+                trainable=trainable,
+                virtual_batch_size=virtual_batch_size,
+                adjustment=adjustment,
+            )
+            self.ema_freeze_delay = ema_freeze_delay
+            self.folding_mode = folding_mode
+
+        def call(self, inputs, training=None):
+            dense_out = tf.keras.backend.dot(inputs, self.kernel)
+            if self.use_bias:
+                dense_out = tf.keras.backend.bias_add(
+                    dense_out, self.bias, data_format="channels_last"
+                )
+            out = self.batchnorm(dense_out, training=training)
+            if self.activation is not None:
+                out = self.activation(out)
+            return out
+
+        def get_config(self):
+            cfg = super().get_config()
+            cfg.update({
+                "ema_freeze_delay": self.ema_freeze_delay,
+                "folding_mode": self.folding_mode,
+            })
+            # merge in BN config to support deserialization from saved models
+            cfg.update(self.batchnorm.get_config())
+            return cfg
+
+    return QDenseBatchnorm
+
+
+def _make_qkeras_custom_objects():
+    import qkeras.utils as qutils
+
+    custom_objects = {}
+    qutils._add_supported_quantized_objects(custom_objects)
+
+    if "QDenseBatchnorm" not in custom_objects:
+        custom_objects["QDenseBatchnorm"] = _get_qdense_batchnorm_fallback()
+
+    return custom_objects
+
+
 def _load_qkeras_model_module(model_pipeline_dir):
     model_pipeline_dir = Path(model_pipeline_dir).resolve()
     model_py = model_pipeline_dir / "model.py"
@@ -42,7 +170,16 @@ def run_qkeras_inference(yprofiles, qkeras_model_file, model_pipeline_dir, batch
         raise ValueError(f"Expected yprofiles shape (N,16), got {yprofiles.shape}")
 
     md = _load_qkeras_model_module(model_pipeline_dir)
-    qmodel = md.CreateQModel(shape=16, model_file=qkeras_model_file)
+    try:
+        qmodel = md.CreateQModel(shape=(16,), model_file=qkeras_model_file)
+    except Exception as e:
+        # Fallback path for environments where qkeras misses QDenseBatchnorm.
+        if "QDenseBatchnorm" not in str(e):
+            raise
+        import tensorflow as tf
+
+        custom_objects = _make_qkeras_custom_objects()
+        qmodel = tf.keras.models.load_model(qkeras_model_file, custom_objects=custom_objects)
     logits = qmodel.predict(yprofiles, batch_size=batch_size, verbose=0)
     predictions = np.argmax(logits, axis=1).astype(np.int32)
     return {"logits": logits, "predictions": predictions}
