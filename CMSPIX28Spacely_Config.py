@@ -157,8 +157,8 @@ MP65_SPECIFIC = {
         "debug_csv"     : "/nfs/ceph/public/cms/smartpix/CMSPIX28_DAQ/spacely/PySpacely/spacely-asic-config/CMSPIX28Spacely/csv/hidden_debug.csv",
         "weights_csv"   : "/nfs/ceph/public/cms/smartpix/CMSPIX28_DAQ/spacely/PySpacely/spacely-asic-config/CMSPIX28Spacely/csv/b5_w5_b2_w2_pixel_bin.csv",
         "compout_csv"  : "/nfs/ceph/public/cms/smartpix/CMSPIX28_DAQ/spacely/PySpacely/spacely-asic-config/CMSPIX28Spacely/csv/compouts.csv",
-        "qkeras_model_file": "",
-        "qkeras_model_pipeline_dir": ""
+        "qkeras_model_file": "/nfs/ceph/public/cms/smartpix/CMSPIX28_DAQ/spacely/PySpacely/spacely-asic-config/CMSPIX28Spacely/qkeras_weights/ds8l6_padded_noscaling_qkeras_foldbatchnorm_d58w4a8model.h5",
+        "qkeras_model_pipeline_dir": "/nfs/ceph/public/cms/smartpix/CMSPIX28_DAQ/spacely/PySpacely/spacely-asic-config/CMSPIX28Spacely/filter/model_pipeline"
 }
 
 

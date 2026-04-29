@@ -185,11 +185,7 @@ def _load_qkeras_model_module(model_pipeline_dir):
     return module
 
 
-def run_qkeras_inference(yprofiles, qkeras_model_file, model_pipeline_dir, batch_size=2048):
-    yprofiles = np.asarray(yprofiles, dtype=np.int32)
-    if yprofiles.ndim != 2 or yprofiles.shape[1] != 16:
-        raise ValueError(f"Expected yprofiles shape (N,16), got {yprofiles.shape}")
-
+def load_qkeras_model(qkeras_model_file, model_pipeline_dir):
     md = _load_qkeras_model_module(model_pipeline_dir)
     try:
         qmodel = md.CreateQModel(shape=(16,), model_file=qkeras_model_file)
@@ -207,6 +203,19 @@ def run_qkeras_inference(yprofiles, qkeras_model_file, model_pipeline_dir, batch
             qmodel.load_weights(qkeras_model_file)
         else:
             raise
+    return qmodel
+
+
+def run_qkeras_inference(yprofiles, qkeras_model_file=None, model_pipeline_dir=None, batch_size=2048, qmodel=None):
+    yprofiles = np.asarray(yprofiles, dtype=np.int32)
+    if yprofiles.ndim != 2 or yprofiles.shape[1] != 16:
+        raise ValueError(f"Expected yprofiles shape (N,16), got {yprofiles.shape}")
+
+    if qmodel is None:
+        if qkeras_model_file is None or model_pipeline_dir is None:
+            raise ValueError("Either qmodel or both qkeras_model_file/model_pipeline_dir must be provided")
+        qmodel = load_qkeras_model(qkeras_model_file, model_pipeline_dir)
+
     logits = qmodel.predict(yprofiles, batch_size=batch_size, verbose=0)
     predictions = np.argmax(logits, axis=1).astype(np.int32)
     return {"logits": logits, "predictions": predictions}
@@ -312,6 +321,8 @@ def optimize_discriminator_thresholds(
     if vmin > vmax:
         raise ValueError("Voltage guard limits invalid after applying [0, 3.3] bounds")
 
+    qmodel = load_qkeras_model(qkeras_model_file, model_pipeline_dir)
+
     def evaluate(v0, v1):
         v0 = _clamp_vdisc(v0, "vdisc0")
         v1 = _clamp_vdisc(v1, "vdisc1")
@@ -330,11 +341,7 @@ def optimize_discriminator_thresholds(
         if yprofiles is None:
             raise RuntimeError("DNN returned no yprofiles.")
 
-        qres = run_qkeras_inference(
-            yprofiles=yprofiles,
-            qkeras_model_file=qkeras_model_file,
-            model_pipeline_dir=model_pipeline_dir,
-        )
+        qres = run_qkeras_inference(yprofiles=yprofiles, qmodel=qmodel)
         asic_codes = decode_asic_readouts(dnn_result["readouts"])
         cmp_res = compare_asic_to_qkeras_bits(
             asic_codes=asic_codes,
@@ -475,6 +482,7 @@ def optimize_discriminator_thresholds_experimental(
 
     s0 = float(np.clip(step_vdisc0, min_step, max_step))
     s1 = float(np.clip(step_vdisc1, min_step, max_step))
+    qmodel = load_qkeras_model(qkeras_model_file, model_pipeline_dir)
 
     def evaluate(v0, v1):
         v0 = _clamp_vdisc(v0, "vdisc0")
@@ -494,11 +502,7 @@ def optimize_discriminator_thresholds_experimental(
         if yprofiles is None:
             raise RuntimeError("DNN returned no yprofiles.")
 
-        qres = run_qkeras_inference(
-            yprofiles=yprofiles,
-            qkeras_model_file=qkeras_model_file,
-            model_pipeline_dir=model_pipeline_dir,
-        )
+        qres = run_qkeras_inference(yprofiles=yprofiles, qmodel=qmodel)
         asic_codes = decode_asic_readouts(dnn_result["readouts"])
         cmp_res = compare_asic_to_qkeras_bits(
             asic_codes=asic_codes,
