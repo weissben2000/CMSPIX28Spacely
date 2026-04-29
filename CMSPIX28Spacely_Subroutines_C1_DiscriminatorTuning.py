@@ -16,9 +16,19 @@ def _load_qkeras_model_module(model_pipeline_dir):
     if not model_py.exists():
         raise FileNotFoundError(f"Could not find model.py in {model_pipeline_dir}")
 
-    # filter/model_pipeline uses bare imports (import utils / import model)
-    if str(model_pipeline_dir) not in sys.path:
-        sys.path.insert(0, str(model_pipeline_dir))
+    # filter/model_pipeline uses bare imports and expects pretrain-data-prep.
+    pretrain_data_prep_dir = (model_pipeline_dir.parent / "pretrain-data-prep").resolve()
+    dataset_utils_py = pretrain_data_prep_dir / "dataset_utils.py"
+    if not dataset_utils_py.exists():
+        raise FileNotFoundError(
+            "Could not find dataset_utils.py at "
+            f"{dataset_utils_py}. Ensure filter submodules are initialized "
+            "and model_pipeline_dir points to filter/model_pipeline."
+        )
+
+    for module_dir in (model_pipeline_dir, pretrain_data_prep_dir):
+        if str(module_dir) not in sys.path:
+            sys.path.insert(0, str(module_dir))
 
     spec = importlib.util.spec_from_file_location("smartpix_filter_model", str(model_py))
     module = importlib.util.module_from_spec(spec)
