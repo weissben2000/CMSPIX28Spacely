@@ -1,0 +1,3 @@
+[submodule "filter"]
+	path = filter
+	url = https://github.com/smart-pix/filter.git
