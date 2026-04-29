@@ -150,7 +150,7 @@ def ROUTINE_DNNThresholdOptimize(
             step_vdisc0=step_vdisc0,
             step_vdisc1=step_vdisc1,
             max_iters=max_iters,
-            dnn_kwargs={"readYproj": True},
+            dnn_kwargs=None,
         )
     if method == "baseline":
         output = optimize_discriminator_thresholds(
@@ -163,7 +163,7 @@ def ROUTINE_DNNThresholdOptimize(
             step_vdisc0=step_vdisc0,
             step_vdisc1=step_vdisc1,
             max_iters=max_iters,
-            dnn_kwargs={"readYproj": True},
+            dnn_kwargs=None,
         )
         print(output)
         return output
