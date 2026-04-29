@@ -153,7 +153,7 @@ def ROUTINE_DNNThresholdOptimize(
             dnn_kwargs={"readYproj": True},
         )
     if method == "baseline":
-        return optimize_discriminator_thresholds(
+        output = optimize_discriminator_thresholds(
             qkeras_model_file=qkeras_model_file,
             model_pipeline_dir=model_pipeline_dir,
             patternIndexes=patternIndexes,
@@ -165,4 +165,6 @@ def ROUTINE_DNNThresholdOptimize(
             max_iters=max_iters,
             dnn_kwargs={"readYproj": True},
         )
+        print(output)
+        return output
     raise ValueError("method must be 'baseline' or 'experimental'")
