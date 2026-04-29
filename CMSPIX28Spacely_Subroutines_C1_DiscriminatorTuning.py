@@ -156,6 +156,10 @@ def _make_qkeras_custom_objects():
 
 
 def _load_qkeras_model_module(model_pipeline_dir):
+    # Ensure QDenseBatchnorm is available before importing filter/model.py,
+    # since that file does `from qkeras import *` at import time.
+    _make_qkeras_custom_objects()
+
     model_pipeline_dir = Path(model_pipeline_dir).resolve()
     model_py = model_pipeline_dir / "model.py"
     if not model_py.exists():
@@ -187,7 +191,6 @@ def run_qkeras_inference(yprofiles, qkeras_model_file, model_pipeline_dir, batch
         raise ValueError(f"Expected yprofiles shape (N,16), got {yprofiles.shape}")
 
     md = _load_qkeras_model_module(model_pipeline_dir)
-    _make_qkeras_custom_objects()
     try:
         qmodel = md.CreateQModel(shape=(16,), model_file=qkeras_model_file)
     except Exception as e:
