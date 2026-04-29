@@ -8,6 +8,8 @@ from pathlib import Path
 import numpy as np
 import csv
 import os
+import shutil
+from datetime import datetime
 
 
 def _get_qdense_batchnorm_fallback():
@@ -271,6 +273,19 @@ def compare_asic_to_qkeras_bits(asic_codes, qkeras_classes, qkeras_to_asic_map=N
     }
 
 
+def _make_tuning_output_dir(data_dir):
+    ts = datetime.now().strftime("%Y.%m.%d_%H.%M.%S")
+    outdir = os.path.join(data_dir, "DiscriminatorTuning", ts)
+    os.makedirs(outdir, exist_ok=True)
+    return outdir
+
+
+def _cleanup_dnn_output_dir(path):
+    if not path:
+        return
+    shutil.rmtree(path, ignore_errors=True)
+
+
 def optimize_discriminator_thresholds(
     qkeras_model_file=None,
     model_pipeline_dir=None,
@@ -285,6 +300,8 @@ def optimize_discriminator_thresholds(
     vmin=0.0,
     vmax=3.3,
     dnn_kwargs=None,
+    delete_dnn_outputs=True,
+    tuning_output_dir=None,
 ):
     """
     Tune discriminator thresholds independently:
@@ -293,6 +310,9 @@ def optimize_discriminator_thresholds(
     """
     if dnn_kwargs is None:
         dnn_kwargs = {}
+    data_dir = dnn_kwargs.get("dataDir", FNAL_SETTINGS["storageDirectory"])
+    if tuning_output_dir is None:
+        tuning_output_dir = _make_tuning_output_dir(data_dir)
     if qkeras_model_file is None:
         qkeras_model_file = MP65_SPECIFIC.get("qkeras_model_file")
     if model_pipeline_dir is None:
@@ -351,6 +371,9 @@ def optimize_discriminator_thresholds(
         return cmp_res, dnn_result["outDir"]
 
     cmp_res, outdir = evaluate(vdisc0, vdisc1)
+    if delete_dnn_outputs:
+        _cleanup_dnn_output_dir(outdir)
+        outdir = f"deleted:{outdir}"
     best_bit0 = cmp_res["bit0_error_rate"]
     best_bit1 = cmp_res["bit1_error_rate"]
     history = [{
@@ -371,6 +394,9 @@ def optimize_discriminator_thresholds(
         for sign in (-1.0, 1.0):
             trial_v0 = float(np.clip(vdisc0 + sign * step_vdisc0, vmin, vmax))
             trial_cmp, trial_outdir = evaluate(trial_v0, vdisc1)
+            if delete_dnn_outputs:
+                _cleanup_dnn_output_dir(trial_outdir)
+                trial_outdir = f"deleted:{trial_outdir}"
             v0_candidates.append((trial_cmp["bit0_error_rate"], trial_v0, trial_cmp, trial_outdir))
         cand_bit0, cand_v0, cand_cmp0, cand_outdir0 = min(v0_candidates, key=lambda x: x[0])
         if cand_bit0 < best_bit0:
@@ -385,6 +411,9 @@ def optimize_discriminator_thresholds(
         for sign in (-1.0, 1.0):
             trial_v1 = float(np.clip(vdisc1 + sign * step_vdisc1, vmin, vmax))
             trial_cmp, trial_outdir = evaluate(vdisc0, trial_v1)
+            if delete_dnn_outputs:
+                _cleanup_dnn_output_dir(trial_outdir)
+                trial_outdir = f"deleted:{trial_outdir}"
             v1_candidates.append((trial_cmp["bit1_error_rate"], trial_v1, trial_cmp, trial_outdir))
         cand_bit1, cand_v1, cand_cmp1, cand_outdir1 = min(v1_candidates, key=lambda x: x[0])
         if cand_bit1 < best_bit1:
@@ -416,7 +445,7 @@ def optimize_discriminator_thresholds(
         "history": history,
     }
 
-    history_csv = os.path.join(history[-1]["outDir"], "discriminator_tuning_history.csv")
+    history_csv = os.path.join(tuning_output_dir, "discriminator_tuning_history.csv")
     csv_columns = ["iter", "vdisc0", "vdisc1", "bit0_error_rate", "bit1_error_rate", "class_error_rate", "outDir"]
     with open(history_csv, "w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=csv_columns)
@@ -444,6 +473,8 @@ def optimize_discriminator_thresholds_experimental(
     step_shrink=0.5,
     min_step=0.001,
     max_step=0.2,
+    delete_dnn_outputs=True,
+    tuning_output_dir=None,
 ):
     """
     Experimental optimizer:
@@ -452,6 +483,9 @@ def optimize_discriminator_thresholds_experimental(
     """
     if dnn_kwargs is None:
         dnn_kwargs = {}
+    data_dir = dnn_kwargs.get("dataDir", FNAL_SETTINGS["storageDirectory"])
+    if tuning_output_dir is None:
+        tuning_output_dir = _make_tuning_output_dir(data_dir)
     if qkeras_model_file is None:
         qkeras_model_file = MP65_SPECIFIC.get("qkeras_model_file")
     if model_pipeline_dir is None:
@@ -512,6 +546,9 @@ def optimize_discriminator_thresholds_experimental(
         return cmp_res, dnn_result["outDir"]
 
     cmp_res, outdir = evaluate(vdisc0, vdisc1)
+    if delete_dnn_outputs:
+        _cleanup_dnn_output_dir(outdir)
+        outdir = f"deleted:{outdir}"
     best_bit0 = cmp_res["bit0_error_rate"]
     best_bit1 = cmp_res["bit1_error_rate"]
     history = [{
@@ -533,6 +570,9 @@ def optimize_discriminator_thresholds_experimental(
         for sign in (-1.0, 1.0):
             trial_v0 = float(np.clip(vdisc0 + sign * s0, vmin, vmax))
             trial_cmp, trial_outdir = evaluate(trial_v0, vdisc1)
+            if delete_dnn_outputs:
+                _cleanup_dnn_output_dir(trial_outdir)
+                trial_outdir = f"deleted:{trial_outdir}"
             v0_candidates.append((trial_cmp["bit0_error_rate"], trial_v0, trial_cmp, trial_outdir))
         cand_bit0, cand_v0, cand_cmp0, cand_outdir0 = min(v0_candidates, key=lambda x: x[0])
         if cand_bit0 < best_bit0:
@@ -549,6 +589,9 @@ def optimize_discriminator_thresholds_experimental(
         for sign in (-1.0, 1.0):
             trial_v1 = float(np.clip(vdisc1 + sign * s1, vmin, vmax))
             trial_cmp, trial_outdir = evaluate(vdisc0, trial_v1)
+            if delete_dnn_outputs:
+                _cleanup_dnn_output_dir(trial_outdir)
+                trial_outdir = f"deleted:{trial_outdir}"
             v1_candidates.append((trial_cmp["bit1_error_rate"], trial_v1, trial_cmp, trial_outdir))
         cand_bit1, cand_v1, cand_cmp1, cand_outdir1 = min(v1_candidates, key=lambda x: x[0])
         if cand_bit1 < best_bit1:
@@ -585,7 +628,7 @@ def optimize_discriminator_thresholds_experimental(
         "history": history,
     }
 
-    history_csv = os.path.join(history[-1]["outDir"], "discriminator_tuning_history_experimental.csv")
+    history_csv = os.path.join(tuning_output_dir, "discriminator_tuning_history_experimental.csv")
     csv_columns = [
         "iter", "vdisc0", "vdisc1", "step_vdisc0", "step_vdisc1",
         "bit0_error_rate", "bit1_error_rate", "class_error_rate", "outDir"
