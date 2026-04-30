@@ -154,7 +154,7 @@ def ROUTINE_DNNThresholdOptimize(
             step_vdisc0=step_vdisc0,
             step_vdisc1=step_vdisc1,
             max_iters=max_iters,
-            dnn_kwargs={"readYproj": True},
+            dnn_kwargs=None
         )
     if method == "dyadic":
         return optimize_discriminator_thresholds_dyadic(
@@ -168,7 +168,7 @@ def ROUTINE_DNNThresholdOptimize(
             min_interval_width=dyadic_min_interval_width,
             max_outer_rounds=dyadic_max_outer_rounds,
             max_dyadic_levels=dyadic_max_levels,
-            dnn_kwargs={"readYproj": True},
+            dnn_kwargs=None
         )
     if method == "baseline":
         output = optimize_discriminator_thresholds(
@@ -181,7 +181,7 @@ def ROUTINE_DNNThresholdOptimize(
             step_vdisc0=step_vdisc0,
             step_vdisc1=step_vdisc1,
             max_iters=max_iters,
-            dnn_kwargs={"readYproj": True},
+            dnn_kwargs=None
         )
         print(output)
         return output
