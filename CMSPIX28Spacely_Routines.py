@@ -136,7 +136,11 @@ def ROUTINE_DNNThresholdOptimize(
         step_vdisc0=0.01,
         step_vdisc1=0.01,
         max_iters=8,
-        method="baseline"
+        method="baseline",
+        dyadic_n_intervals=8,
+        dyadic_min_interval_width=0.002,
+        dyadic_max_outer_rounds=4,
+        dyadic_max_levels=100,
 ):
     method = str(method).strip().lower()
     if method == "experimental":
@@ -150,7 +154,21 @@ def ROUTINE_DNNThresholdOptimize(
             step_vdisc0=step_vdisc0,
             step_vdisc1=step_vdisc1,
             max_iters=max_iters,
-            dnn_kwargs=None,
+            dnn_kwargs={"readYproj": True},
+        )
+    if method == "dyadic":
+        return optimize_discriminator_thresholds_dyadic(
+            qkeras_model_file=qkeras_model_file,
+            model_pipeline_dir=model_pipeline_dir,
+            patternIndexes=patternIndexes,
+            n_test_vectors=n_test_vectors,
+            init_vdisc0=init_vdisc0,
+            init_vdisc1=init_vdisc1,
+            n_intervals=dyadic_n_intervals,
+            min_interval_width=dyadic_min_interval_width,
+            max_outer_rounds=dyadic_max_outer_rounds,
+            max_dyadic_levels=dyadic_max_levels,
+            dnn_kwargs={"readYproj": True},
         )
     if method == "baseline":
         output = optimize_discriminator_thresholds(
@@ -163,8 +181,8 @@ def ROUTINE_DNNThresholdOptimize(
             step_vdisc0=step_vdisc0,
             step_vdisc1=step_vdisc1,
             max_iters=max_iters,
-            dnn_kwargs=None,
+            dnn_kwargs={"readYproj": True},
         )
         print(output)
         return output
-    raise ValueError("method must be 'baseline' or 'experimental'")
+    raise ValueError("method must be 'baseline', 'experimental', or 'dyadic'")

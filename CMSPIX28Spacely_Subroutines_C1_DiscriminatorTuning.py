@@ -639,3 +639,240 @@ def optimize_discriminator_thresholds_experimental(
         writer.writerows(history)
     summary["history_csv"] = history_csv
     return summary
+
+
+def optimize_discriminator_thresholds_dyadic(
+    qkeras_model_file=None,
+    model_pipeline_dir=None,
+    patternIndexes=None,
+    n_test_vectors=1,
+    init_vdisc0=0.0,
+    init_vdisc1=0.0,
+    n_intervals=8,
+    min_interval_width=0.002,
+    max_outer_rounds=4,
+    max_dyadic_levels=100,
+    qkeras_to_asic_map=None,
+    vmin=0.0,
+    vmax=3.3,
+    dnn_kwargs=None,
+    delete_dnn_outputs=True,
+    tuning_output_dir=None,
+):
+    """
+    Dyadic interval refinement: partition [vmin, vmax] into n_intervals subintervals,
+    keep the subinterval whose midpoint achieved the lowest bit error for that
+    discriminator, recurse until interval width <= min_interval_width.
+    Alternates vdisc0 (objective: bit0_error_rate) and vdisc1 (bit1_error_rate)
+    for max_outer_rounds. Final voltages are midpoints of the last intervals.
+    """
+    if dnn_kwargs is None:
+        dnn_kwargs = {}
+    data_dir = dnn_kwargs.get("dataDir", FNAL_SETTINGS["storageDirectory"])
+    if tuning_output_dir is None:
+        tuning_output_dir = _make_tuning_output_dir(data_dir)
+    if qkeras_model_file is None:
+        qkeras_model_file = MP65_SPECIFIC.get("qkeras_model_file")
+    if model_pipeline_dir is None:
+        model_pipeline_dir = MP65_SPECIFIC.get("qkeras_model_pipeline_dir")
+    if not qkeras_model_file or not model_pipeline_dir:
+        raise ValueError(
+            "QKeras paths are missing. Set MP65_SPECIFIC['qkeras_model_file'] "
+            "and MP65_SPECIFIC['qkeras_model_pipeline_dir'], or pass them as args."
+        )
+    n_intervals = int(n_intervals)
+    if n_intervals < 2:
+        raise ValueError("n_intervals must be >= 2")
+    if patternIndexes is None:
+        n_test_vectors = int(n_test_vectors)
+        if n_test_vectors <= 0:
+            raise ValueError("n_test_vectors must be > 0")
+        patternIndexes = list(range(n_test_vectors))
+
+    def _clamp_vdisc(v, name):
+        v_clamped = float(np.clip(float(v), 0.0, 3.3))
+        if v_clamped != float(v):
+            print(f"[SAFETY] Clamped {name} from {v} to {v_clamped} V")
+        return v_clamped
+
+    vmin = max(0.0, float(vmin))
+    vmax = min(3.3, float(vmax))
+    if vmin > vmax:
+        raise ValueError("Voltage guard limits invalid after applying [0, 3.3] bounds")
+
+    qmodel = load_qkeras_model(qkeras_model_file, model_pipeline_dir)
+
+    def evaluate(v0, v1):
+        v0 = _clamp_vdisc(v0, "vdisc0")
+        v1 = _clamp_vdisc(v1, "vdisc1")
+        V_PORT["vdisc0"].set_voltage(v0)
+        V_LEVEL["vdisc0"] = v0
+        V_PORT["vdisc1"].set_voltage(v1)
+        V_LEVEL["vdisc1"] = v1
+
+        dnn_result = DNN(
+            patternIndexes=patternIndexes,
+            return_data=True,
+            readYproj=True,
+            **dnn_kwargs,
+        )
+        yprofiles = dnn_result["yprofiles"]
+        if yprofiles is None:
+            raise RuntimeError("DNN returned no yprofiles.")
+
+        qres = run_qkeras_inference(yprofiles=yprofiles, qmodel=qmodel)
+        asic_codes = decode_asic_readouts(dnn_result["readouts"])
+        cmp_res = compare_asic_to_qkeras_bits(
+            asic_codes=asic_codes,
+            qkeras_classes=qres["predictions"],
+            qkeras_to_asic_map=qkeras_to_asic_map,
+        )
+        outdir = dnn_result["outDir"]
+        if delete_dnn_outputs:
+            _cleanup_dnn_output_dir(outdir)
+            outdir = f"deleted:{outdir}"
+        return cmp_res, outdir
+
+    vdisc0 = _clamp_vdisc(init_vdisc0, "vdisc0")
+    vdisc1 = _clamp_vdisc(init_vdisc1, "vdisc1")
+
+    history = []
+    step_id = 0
+
+    def record(row):
+        nonlocal step_id
+        step_id += 1
+        row["step"] = step_id
+        history.append(row)
+
+    interval_v0 = (vmin, vmax)
+    interval_v1 = (vmin, vmax)
+
+    def shrink_dim0(lo, hi, v1_fixed):
+        level = 0
+        best_cmp = None
+        while (hi - lo) > min_interval_width and level < max_dyadic_levels:
+            edges = np.linspace(lo, hi, n_intervals + 1)
+            best_err = float("inf")
+            best_mid = float("inf")
+            best_lo, best_hi = lo, hi
+            for i in range(n_intervals):
+                seg_lo = float(edges[i])
+                seg_hi = float(edges[i + 1])
+                mid = (seg_lo + seg_hi) / 2.0
+                cmp_res, outdir = evaluate(mid, v1_fixed)
+                err = cmp_res["bit0_error_rate"]
+                if err < best_err or (np.isclose(err, best_err) and mid < best_mid):
+                    best_err = err
+                    best_mid = mid
+                    best_lo, best_hi = seg_lo, seg_hi
+                    best_cmp = cmp_res
+                record({
+                    "method": "dyadic",
+                    "phase": "vdisc0",
+                    "dyadic_level": level,
+                    "interval_lo": seg_lo,
+                    "interval_hi": seg_hi,
+                    "probe_vdisc0": mid,
+                    "probe_vdisc1": v1_fixed,
+                    "bit0_error_rate": cmp_res["bit0_error_rate"],
+                    "bit1_error_rate": cmp_res["bit1_error_rate"],
+                    "class_error_rate": cmp_res["class_error_rate"],
+                    "outDir": outdir,
+                })
+            lo, hi = best_lo, best_hi
+            level += 1
+        return lo, hi, best_cmp
+
+    def shrink_dim1(lo, hi, v0_fixed):
+        level = 0
+        best_cmp = None
+        while (hi - lo) > min_interval_width and level < max_dyadic_levels:
+            edges = np.linspace(lo, hi, n_intervals + 1)
+            best_err = float("inf")
+            best_mid = float("inf")
+            best_lo, best_hi = lo, hi
+            for i in range(n_intervals):
+                seg_lo = float(edges[i])
+                seg_hi = float(edges[i + 1])
+                mid = (seg_lo + seg_hi) / 2.0
+                cmp_res, outdir = evaluate(v0_fixed, mid)
+                err = cmp_res["bit1_error_rate"]
+                if err < best_err or (np.isclose(err, best_err) and mid < best_mid):
+                    best_err = err
+                    best_mid = mid
+                    best_lo, best_hi = seg_lo, seg_hi
+                    best_cmp = cmp_res
+                record({
+                    "method": "dyadic",
+                    "phase": "vdisc1",
+                    "dyadic_level": level,
+                    "interval_lo": seg_lo,
+                    "interval_hi": seg_hi,
+                    "probe_vdisc0": v0_fixed,
+                    "probe_vdisc1": mid,
+                    "bit0_error_rate": cmp_res["bit0_error_rate"],
+                    "bit1_error_rate": cmp_res["bit1_error_rate"],
+                    "class_error_rate": cmp_res["class_error_rate"],
+                    "outDir": outdir,
+                })
+            lo, hi = best_lo, best_hi
+            level += 1
+        return lo, hi, best_cmp
+
+    cmp_final = None
+    for outer in range(max_outer_rounds):
+        lo0, hi0, cmp0 = shrink_dim0(vmin, vmax, vdisc1)
+        vdisc0 = (lo0 + hi0) / 2.0
+        interval_v0 = (lo0, hi0)
+
+        lo1, hi1, cmp1 = shrink_dim1(vmin, vmax, vdisc0)
+        vdisc1 = (lo1 + hi1) / 2.0
+        interval_v1 = (lo1, hi1)
+
+        if cmp1 is not None:
+            cmp_final = cmp1
+        elif cmp0 is not None:
+            cmp_final = cmp0
+
+        record({
+            "method": "dyadic",
+            "phase": "outer_round_end",
+            "outer_round": outer,
+            "interval_vdisc0": f"[{lo0},{hi0}]",
+            "interval_vdisc1": f"[{lo1},{hi1}]",
+            "vdisc0": vdisc0,
+            "vdisc1": vdisc1,
+            "bit0_error_rate": cmp_final["bit0_error_rate"] if cmp_final else None,
+            "bit1_error_rate": cmp_final["bit1_error_rate"] if cmp_final else None,
+            "class_error_rate": cmp_final["class_error_rate"] if cmp_final else None,
+            "outDir": "",
+        })
+
+    if cmp_final is None:
+        cmp_final, _ = evaluate(vdisc0, vdisc1)
+
+    summary = {
+        "method": "dyadic",
+        "best_discriminators": {"vdisc0": float(vdisc0), "vdisc1": float(vdisc1)},
+        "final_intervals": {
+            "vdisc0": [float(interval_v0[0]), float(interval_v0[1])],
+            "vdisc1": [float(interval_v1[0]), float(interval_v1[1])],
+        },
+        "best_metrics": {
+            "bit0_error_rate": cmp_final["bit0_error_rate"],
+            "bit1_error_rate": cmp_final["bit1_error_rate"],
+            "class_error_rate": cmp_final["class_error_rate"],
+        },
+        "history": history,
+    }
+
+    history_csv = os.path.join(tuning_output_dir, "discriminator_tuning_history_dyadic.csv")
+    if history:
+        fieldnames = sorted({k for row in history for k in row.keys()})
+        with open(history_csv, "w", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer.writeheader()
+            writer.writerows(history)
+    summary["history_csv"] = history_csv
+    return summary
