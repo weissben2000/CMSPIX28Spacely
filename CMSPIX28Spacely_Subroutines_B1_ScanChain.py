@@ -99,5 +99,5 @@ def ScanChainOneShot(
         words.append(int_to_32bit(sw_read32_0)[::-1])
     
     s = ''.join(words)
-    print(len(words), s)
-    return None
+    print(len(words), len(s))
+    return s
